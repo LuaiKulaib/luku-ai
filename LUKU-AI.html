@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUKU AI - مساعد الألغاز الذكي</title>
+    <meta name="description" content="LUKU AI - مساعدك الذكي الخاص بالألغاز والألعاب. تحدى نفسك مع ألغاز في مختلف المجالات والمستويات.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧩</text></svg>">
+    <style>
+        :root {
+          --bg: #0b0e14;
+          --text: #e5e7eb;
+          --muted: #9ca3af;
+          --card: #0f131b;
+          --border: #1f2430;
+          --brand: #22d3ee;
+          --user-bubble: #0f172a;
+          --bot-bubble: #0d1117;
+          --success: #10b981;
+          --warning: #f59e0b;
+          --error: #ef4444;
+          --transition: all 0.3s ease;
+        }
+
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body {
+          margin: 0;
+          font: 16px/1.6 system-ui, sans-serif;
+          background: var(--bg);
+          color: var(--text);
+          transition: var(--transition);
+        }
+
+        #app {
+          display: grid;
+          grid-template-columns: 220px 1fr;
+          height: 100vh;
+        }
+
+        /* تحسين الشريط الجانبي - أصغر حجمًا */
+        .sidebar {
+          display: flex;
+          flex-direction: column;
+          border-inline-end: 1px solid var(--border);
+          background: var(--card);
+          transition: var(--transition);
+          width: 220px;
+        }
+
+        .sidebar-top, .sidebar-bottom {
+          padding: 10px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-bottom {
+          border-top: 1px solid var(--border);
+          margin-top: auto;
+        }
+
+        .history {
+          padding: 6px;
+          overflow: auto;
+          flex: 1;
+        }
+
+        .history-empty {
+          padding: 10px;
+          color: var(--muted);
+          text-align: center;
+          font-size: 14px;
+        }
+
+        .history-item {
+          padding: 8px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          border: 1px solid transparent;
+          background: transparent;
+          color: var(--text);
+          margin-bottom: 6px;
+          transition: var(--transition);
+          font-size: 14px;
+        }
+
+        .history-item:hover {
+          background: var(--bg);
+          border-color: var(--border);
+        }
+
+        .history-item.active {
+          border-color: var(--brand);
+          background: rgba(34, 211, 238, 0.1);
+        }
+
+        /* تحسين المحتوى الرئيسي - مساحة أكبر */
+        .main {
+          display: grid;
+          grid-template-rows: auto 1fr auto;
+          height: 100vh;
+          position: relative;
+          width: 100%;
+        }
+
+        .chat-header {
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--border);
+          background: var(--card);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          transition: var(--transition);
+        }
+
+        .chat-title {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .logo {
+          font-size: 22px;
+        }
+
+        .name {
+          font-weight: 700;
+          font-size: 18px;
+        }
+
+        .subtitle {
+          font-size: 13px;
+          color: var(--muted);
+          margin-top: 2px;
+        }
+
+        .welcome {
+          display: grid;
+          place-items: center;
+          padding: 24px;
+          text-align: center;
+        }
+
+        .welcome h1 {
+          font-size: 2rem;
+          margin-bottom: 16px;
+        }
+
+        .welcome h1 span {
+          color: var(--brand);
+        }
+
+        .suggestions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          justify-content: center;
+          margin-top: 20px;
+          max-width: 600px;
+        }
+
+        .chip {
+          background: var(--bg);
+          border: 1px solid var(--border);
+          padding: 10px 16px;
+          border-radius: 999px;
+          cursor: pointer;
+          transition: var(--transition);
+          font-size: 14px;
+          color: white;
+        }
+
+        .chip:hover {
+          border-color: var(--brand);
+          color: var(--brand);
+          transform: translateY(-5px);
+        }
+
+        .chip.selected {
+          background: var(--brand);
+          border-color: var(--brand);
+          color: #071318;
+        }
+
+        .levels {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          justify-content: center;
+          margin: 16px 0;
+        }
+
+        .levels button {
+          background: var(--bg);
+          border: 1px solid var(--border);
+          padding: 10px 16px;
+          border-radius: 999px;
+          cursor: pointer;
+          transition: var(--transition);
+          color: var(--text);
+          font-size: 14px;
+        }
+
+        .levels button:hover {
+          border-color: var(--brand);
+          color: var(--brand);
+        }
+
+        .levels button.selected {
+          background: var(--brand);
+          border-color: var(--brand);
+          color: #071318;
+        }
+
+        /* تحسين منطقة المحادثة - مساحة أكبر */
+        .chat {
+          overflow: auto;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          scroll-behavior: smooth;
+          width: 100%;
+        }
+
+        .msg {
+          display: grid;
+          grid-template-columns: 36px 1fr;
+          gap: 12px;
+          align-items: flex-start;
+          width: 100%;
+          max-width: 900px;
+          margin: 0 auto;
+          animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg .avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          background: var(--bg);
+          border: 1px solid var(--border);
+          font-size: 16px;
+          flex-shrink: 0;
+        }
+
+        .msg .bubble {
+          background: var(--bot-bubble);
+          border: 1px solid var(--border);
+          padding: 12px 16px;
+          border-radius: 18px;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          line-height: 1.5;
+          max-width: 80%;
+        }
+
+        .msg.user {
+          direction: ltr;
+        }
+
+        .msg.user .bubble {
+          background: var(--user-bubble);
+          direction: rtl;
+        }
+
+        .msg.user .avatar {
+          background: var(--brand);
+          color: #00111a;
+          border: none;
+        }
+
+        .typing-indicator {
+          display: inline-flex;
+          gap: 4px;
+          padding: 8px 0;
+        }
+
+        .typing-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background-color: var(--muted);
+          animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingAnimation {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-5px); }
+        }
+
+        /* تحسين منطقة الكتابة */
+        .composer {
+          position: sticky;
+          bottom: 0;
+          background: linear-gradient(to top, var(--bg) 70%, transparent);
+          padding: 16px;
+          border-top: 1px solid var(--border);
+          transition: var(--transition);
+          width: 100%;
+        }
+
+        .input-wrap {
+          display: grid;
+          grid-template-columns: 1fr auto auto;
+          gap: 8px;
+          align-items: end;
+          width: min(900px, 100%);
+          margin: 0 auto;
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 12px;
+          transition: var(--transition);
+        }
+
+        .input-wrap:focus-within {
+          border-color: var(--brand);
+          box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.1);
+        }
+
+        textarea {
+          width: 100%;
+          resize: none;
+          max-height: 32svh;
+          background: transparent;
+          color: var(--text);
+          border: none;
+          outline: none;
+          font-size: 15px;
+          font-family: inherit;
+          line-height: 1.5;
+          direction: rtl;
+        }
+
+        .controls {
+          display: inline-flex;
+          gap: 6px;
+          align-items: center;
+        }
+
+        .btn {
+          border: 1px solid var(--border);
+          background: var(--bg);
+          color: var(--text);
+          padding: 8px 12px;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: var(--transition);
+          font-family: inherit;
+          font-size: 14px;
+        }
+
+        .btn:hover {
+          border-color: var(--brand);
+          color: var(--brand);
+        }
+
+        .btn.primary {
+          background: var(--brand);
+          border-color: var(--brand);
+          color: #071318;
+        }
+
+        .btn.primary:hover {
+          background: #06b6d4;
+          border-color: #06b6d4;
+          color: #071318;
+        }
+
+        .btn.ghost {
+          background: transparent;
+        }
+
+        .btn.full {
+          width: 100%;
+        }
+
+        .icon-btn {
+          height: 36px;
+          width: 36px;
+          display: grid;
+          place-items: center;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          background: var(--bg);
+          cursor: pointer;
+          transition: var(--transition);
+        }
+
+        .icon-btn:hover {
+          border-color: var(--brand);
+          color: var(--brand);
+        }
+
+        .tos {
+          width: min(900px, 100%);
+          margin: 12px auto 0;
+          color: var(--muted);
+          font-size: 12px;
+          text-align: center;
+        }
+
+        /* تحسينات للوضع الفاتح */
+        body.theme-light {
+          --bg: #f8fafc;
+          --text: #1e293b;
+          --muted: #64748b;
+          --card: #ffffff;
+          --border: #e2e8f0;
+          --brand: #0ea5e9;
+          --user-bubble: #e0f2fe;
+          --bot-bubble: #f1f5f9;
+        }
+
+        body.theme-light .sidebar {
+          border-inline-end: 1px solid var(--border);
+        }
+
+        /* تحسينات للاستجابة على الأجهزة المحمولة */
+        @media (max-width: 768px) {
+          #app {
+            grid-template-columns: 1fr;
+          }
+       
+          .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 220px;
+            z-index: 100;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+          }
+       
+          .sidebar.open {
+            transform: translateX(0);
+          }
+       
+          .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+            display: none;
+          }
+       
+          .sidebar-overlay.open {
+            display: block;
+          }
+       
+          .mobile-menu-btn {
+            display: block;
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 101;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+          }
+       
+          .suggestions, .levels {
+            flex-direction: column;
+            align-items: stretch;
+          }
+       
+          .input-wrap {
+            grid-template-columns: 1fr auto;
+          }
+       
+          .controls {
+            grid-column: 1 / -1;
+            justify-content: flex-end;
+            margin-top: 8px;
+          }
+        }
+
+        /* تحسينات إضافية */
+        .loading {
+          opacity: 0.7;
+          pointer-events: none;
+        }
+
+        .notification {
+          position: fixed;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 12px 16px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+          from { opacity: 0; transform: translate(-50%, 20px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+
+        .notification.success {
+          border-color: var(--success);
+        }
+
+        .notification.error {
+          border-color: var(--error);
+        }
+
+        /* شريط التمرير المخصص */
+        .chat::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .chat::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .chat::-webkit-scrollbar-thumb {
+          background: var(--border);
+          border-radius: 3px;
+        }
+
+        .chat::-webkit-scrollbar-thumb:hover {
+          background: var(--muted);
+        }
+    </style>
+</head>
+<body class="theme-dark">
+    <div id="app">
+        <!-- زر القائمة للأجهزة المحمولة -->
+        <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="فتح القائمة">
+            <span>☰</span>
+        </button>
+      
+        <!-- overlay للقائمة الجانبية على الأجهزة المحمولة -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+      
+        <!-- الشريط الجانبي -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <button id="new-chat" class="btn primary full">
+                    <span>+</span> محادثة جديدة
+                </button>
+            </div>
+            <nav class="history" id="history-list">
+                <div class="history-empty" id="history-empty">لا توجد محادثات بعد</div>
+                <!-- سيتم إضافة عناصر المحادثات هنا عبر JavaScript -->
+            </nav>
+            <div class="sidebar-bottom">
+                <button id="toggle-theme" class="btn ghost full">
+                    <span id="theme-icon">🌙</span> تغيير المظهر
+                </button>
+                <div class="brand">LUKU AI</div>
+            </div>
+        </aside>
+
+        <!-- المحتوى الرئيسي -->
+        <main class="main">
+            <header class="chat-header">
+                <div class="chat-title">
+                    <span class="logo">🧩</span>
+                    <div>
+                        <div class="name">LUKU AI</div>
+                        <div class="subtitle">مختص في الألعاب والألغاز فقط</div>
+                    </div>
+                </div>
+                <button id="clear-chat" class="btn ghost" aria-label="مسح المحادثة">
+                    🗑️ مسح المحادثة
+                </button>
+            </header>
+
+            <section id="welcome" class="welcome">
+                <h1>مرحبًا! 👋 أنا <span>LUKU AI</span></h1>
+                <p class="hint">اختر مجال الألغاز أولاً:</p>
+                <div class="suggestions">
+                    <button class="chip" data-category="دين">🕌 دين</button>
+                    <button class="chip" data-category="رياضة">⚽ رياضة</button>
+                    <button class="chip" data-category="ثقافة">📚 ثقافة</button>
+                    <button class="chip" data-category="منطق">🔢 منطق</button>
+                    <button class="chip" data-category="ترفيه">🎭 ترفيه</button>
+                </div>
+            </section>
+
+            <section id="chat" class="chat" aria-live="polite"></section>
+
+            <footer class="composer">
+                <div class="input-wrap">
+                    <textarea id="input" rows="1" placeholder="اكتب رسالتك… (Enter للإرسال / Shift+Enter لسطر جديد)" aria-label="رسالتك"></textarea>
+                    <div class="controls">
+                        <button id="copy-last" class="icon-btn" title="نسخ آخر رد">📋</button>
+                        <button id="send" class="btn primary">إرسال</button>
+                    </div>
+                </div>
+                <div class="tos">© 2025 جميع الحقوق محفوظة — <strong>Luai Kulaib</strong></div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- منطقة الإشعارات -->
+    <div id="notification-area"></div>
+
+    <script>
+        // === حالة التطبيق ===
+        const state = {
+            currentSessionId: null,
+            selectedCategory: null,
+            selectedLevel: null,
+            isWaitingForResponse: false,
+            theme: 'dark'
+        };
+
+        // === عناصر DOM ===
+        const elements = {
+            chatBox: document.getElementById("chat"),
+            welcomeSection: document.getElementById("welcome"),
+            input: document.getElementById("input"),
+            sendBtn: document.getElementById("send"),
+            suggestions: document.querySelectorAll(".chip"),
+            historyList: document.getElementById("history-list"),
+            historyEmpty: document.getElementById("history-empty"),
+            newChatBtn: document.getElementById("new-chat"),
+            toggleThemeBtn: document.getElementById("toggle-theme"),
+            themeIcon: document.getElementById("theme-icon"),
+            clearChatBtn: document.getElementById("clear-chat"),
+            copyLastBtn: document.getElementById("copy-last"),
+            mobileMenuBtn: document.getElementById("mobile-menu-btn"),
+            sidebar: document.getElementById("sidebar"),
+            sidebarOverlay: document.getElementById("sidebar-overlay"),
+            notificationArea: document.getElementById("notification-area")
+        };
+
+        // === وظائف المساعدة ===
+        function showNotification(message, type = 'info', duration = 3000) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+          
+            let icon = '💡';
+            if (type === 'success') icon = '✅';
+            if (type === 'error') icon = '❌';
+          
+            notification.innerHTML = `
+                <span>${icon}</span>
+                <span>${message}</span>
+            `;
+          
+            elements.notificationArea.appendChild(notification);
+          
+            setTimeout(() => {
+                notification.remove();
+            }, duration);
+        }
+
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('تم نسخ النص بنجاح', 'success');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                showNotification('فشل في نسخ النص', 'error');
+            });
+        }
+
+        function toggleMobileMenu() {
+            elements.sidebar.classList.toggle('open');
+            elements.sidebarOverlay.classList.toggle('open');
+            document.body.style.overflow = elements.sidebar.classList.contains('open') ? 'hidden' : '';
+        }
+
+        // === إدارة الجلسات والمحادثات ===
+        function createNewSession(category = null, level = null) {
+            // إخفاء قسم الترحيب
+            elements.welcomeSection.style.display = 'none';
+          
+            // إنشاء معرف جلسة جديد
+            state.currentSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            state.selectedCategory = category;
+            state.selectedLevel = level;
+          
+            // إضافة رسالة ترحيب بناءً على المجال والمستوى
+            if (category && level) {
+                addMessage(`مرحبًا! أنا LUKU AI، جاهز لتقديم ألغاز في مجال <strong>${category}</strong> بمستوى صعوبة <strong>${level}</strong>. هيا نبدأ! 🎯`, 'bot');
+            } else {
+                addMessage(`مرحبًا! أنا LUKU AI، مساعدك المختص في الألغاز والألعاب. كيف يمكنني مساعدتك اليوم? 🧩`, 'bot');
+            }
+          
+            // إضافة الجلسة إلى القائمة الجانبية
+            addSessionToHistory(state.currentSessionId, category, level);
+          
+            showNotification('تم بدء محادثة جديدة', 'success');
+        }
+
+        function addSessionToHistory(sessionId, category, level) {
+            // إخفاء الرسالة "لا توجد محادثات"
+            elements.historyEmpty.style.display = 'none';
+          
+            // إنشاء عنصر جديد في القائمة الجانبية
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.dataset.sessionId = sessionId;
+          
+            const categoryText = category ? ` (${category})` : '';
+            const levelText = level ? ` - ${level}` : '';
+          
+            historyItem.innerHTML = `
+                <div class="history-item-title">محادثة جديدة${categoryText}</div>
+                <div class="history-item-preview">بدء محادثة${levelText}</div>
+            `;
+          
+            // إضافة حدث النقر
+            historyItem.addEventListener('click', () => {
+                loadSession(sessionId);
+            });
+          
+            elements.historyList.appendChild(historyItem);
+        }
+
+        function loadSession(sessionId) {
+            showNotification('جاري تحميل المحادثة...', 'info');
+          
+            // مسح المحادثة الحالية
+            clearChat();
+          
+            // إضافة رسالة تحميل
+            addMessage('جاري تحميل المحادثة...', 'bot');
+          
+            // محاكاة تحميل المحادثة (في التطبيق الحقيقي، نطلب البيانات من الخادم)
+            setTimeout(() => {
+                clearChat();
+                addMessage('مرحبًا بك مجددًا! كيف يمكنني مساعدتك اليوم? 🧩', 'bot');
+                showNotification('تم تحميل المحادثة', 'success');
+            }, 1000);
+        }
+
+        function clearChat() {
+            elements.chatBox.innerHTML = '';
+        }
+
+        function clearAllChats() {
+            if (confirm('هل أنت متأكد من أنك تريد مسح جميع المحادثات? لا يمكن التراجع عن هذا الإجراء.')) {
+                elements.historyList.innerHTML = '';
+                elements.historyEmpty.style.display = 'block';
+                clearChat();
+                state.currentSessionId = null;
+                elements.welcomeSection.style.display = 'grid';
+                showNotification('تم مسح جميع المحادثات', 'success');
+            }
+        }
+
+        // === إدارة الرسائل ===
+        function addMessage(text, sender = 'bot') {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${sender}`;
+          
+            const avatar = sender === 'bot' ? '🧩' : '👤';
+            const bubbleClass = sender === 'bot' ? '' : 'user';
+          
+            msgDiv.innerHTML = `
+                <div class="avatar">${avatar}</div>
+                <div class="bubble ${bubbleClass}">${text}</div>
+            `;
+          
+            elements.chatBox.appendChild(msgDiv);
+            elements.chatBox.scrollTop = elements.chatBox.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'msg bot';
+            typingDiv.id = 'typing-indicator';
+          
+            typingDiv.innerHTML = `
+                <div class="avatar">🧩</div>
+                <div class="bubble">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+          
+            elements.chatBox.appendChild(typingDiv);
+            elements.chatBox.scrollTop = elements.chatBox.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        // === التواصل مع الخادم ===
+        async function sendMessageToServer(message) {
+            showTypingIndicator();
+            state.isWaitingForResponse = true;
+          
+            try {
+                // إرسال الرسالة إلى الخادم
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: state.currentSessionId || 'default',
+                        category: state.selectedCategory || '',
+                        level: state.selectedLevel || ''
+                    })
+                });
+              
+                const data = await response.json();
+              
+                if (data.error) {
+                    throw new Error(data.message);
+                }
+              
+                return data.reply;
+              
+            } catch (error) {
+                console.error('Error communicating with server:', error);
+                showNotification('حدث خطأ في الاتصال بالخادم', 'error');
+                return "عذرًا، حدث خطأ أثناء معالجة طلبك. يرجى التأكد من أن الخادم يعمل على المنفذ 3000.";
+            } finally {
+                hideTypingIndicator();
+                state.isWaitingForResponse = false;
+            }
+        }
+
+        // === إرسال الرسائل ===
+        async function sendMessage() {
+            const text = elements.input.value.trim();
+            if (!text || state.isWaitingForResponse) return;
+          
+            // إذا لم تكن هناك جلسة نشطة، ننشئ واحدة
+            if (!state.currentSessionId) {
+                createNewSession();
+            }
+          
+            // إضافة رسالة المستخدم
+            addMessage(text, 'user');
+            elements.input.value = '';
+            autoResizeTextarea(elements.input);
+          
+            // إرسال الرسالة إلى الخادم والحصول على الرد
+            const reply = await sendMessageToServer(text);
+          
+            // إضافة رد البوت
+            addMessage(reply, 'bot');
+        }
+
+        // === إدارة المظهر ===
+        function toggleTheme() {
+            if (state.theme === 'dark') {
+                document.body.classList.add('theme-light');
+                document.body.classList.remove('theme-dark');
+                elements.themeIcon.textContent = '☀️';
+                state.theme = 'light';
+                localStorage.setItem('luku-theme', 'light');
+                showNotification('تم التغيير إلى الوضع الفاتح', 'success');
+            } else {
+                document.body.classList.add('theme-dark');
+                document.body.classList.remove('theme-light');
+                elements.themeIcon.textContent = '🌙';
+                state.theme = 'dark';
+                localStorage.setItem('luku-theme', 'dark');
+                showNotification('تم التغيير إلى الوضع الداكن', 'success');
+            }
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('luku-theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('theme-light');
+                document.body.classList.remove('theme-dark');
+                elements.themeIcon.textContent = '☀️';
+                state.theme = 'light';
+            }
+        }
+
+        // === تكوين الأحداث ===
+        function setupEventListeners() {
+            // إرسال الرسائل
+            elements.sendBtn.addEventListener('click', sendMessage);
+            elements.input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+              
+                // التحكم في حجم textarea
+                if (e.key === 'Enter' && e.shiftKey) {
+                    setTimeout(() => autoResizeTextarea(elements.input), 0);
+                }
+            });
+          
+            elements.input.addEventListener('input', () => {
+                autoResizeTextarea(elements.input);
+            });
+          
+            // اختيار المجال
+            elements.suggestions.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // إلغاء تحديد جميع الأزرار
+                    elements.suggestions.forEach(b => b.classList.remove('selected'));
+                    // تحديد الزر الحالي
+                    btn.classList.add('selected');
+                  
+                    state.selectedCategory = btn.dataset.category;
+                  
+                    // الانتقال إلى اختيار المستوى
+                    elements.welcomeSection.querySelector('.hint').textContent = 'اختر مستوى الصعوبة:';
+                    elements.welcomeSection.querySelector('.suggestions').style.display = 'none';
+                  
+                    const levelsHtml = `
+                        <div class="levels">
+                            <button data-level="مبتدئ" class="chip">مبتدئ 🌱</button>
+                            <button data-level="متوسط" class="chip">متوسط 💡</button>
+                            <button data-level="خبير" class="chip">خبير 🤯</button>
+                        </div>
+                    `;
+                  
+                    elements.welcomeSection.insertAdjacentHTML('beforeend', levelsHtml);
+                  
+                    // إضافة أحداث لمستويات الصعوبة
+                    document.querySelectorAll('.levels .chip').forEach(levelBtn => {
+                        levelBtn.addEventListener('click', () => {
+                            // إلغاء تحديد جميع أزرار المستويات
+                            document.querySelectorAll('.levels .chip').forEach(b => b.classList.remove('selected'));
+                            // تحديد الزر الحالي
+                            levelBtn.classList.add('selected');
+                          
+                            state.selectedLevel = levelBtn.dataset.level;
+                            createNewSession(state.selectedCategory, state.selectedLevel);
+                        });
+                    });
+                });
+            });
+          
+            // الأزرار الأخرى
+            elements.newChatBtn.addEventListener('click', () => {
+                state.selectedCategory = null;
+                state.selectedLevel = null;
+                elements.welcomeSection.style.display = 'grid';
+                elements.welcomeSection.querySelector('.hint').textContent = 'اختر مجال الألغاز أولاً:';
+                elements.welcomeSection.querySelector('.suggestions').style.display = 'flex';
+              
+                const levelsSection = elements.welcomeSection.querySelector('.levels');
+                if (levelsSection) {
+                    levelsSection.remove();
+                }
+              
+                // إلغاء تحديد جميع الأزرار
+                elements.suggestions.forEach(b => b.classList.remove('selected'));
+              
+                clearChat();
+                showNotification('تم إعداد محادثة جديدة', 'success');
+            });
+          
+            elements.toggleThemeBtn.addEventListener('click', toggleTheme);
+          
+            elements.clearChatBtn.addEventListener('click', () => {
+                if (state.currentSessionId) {
+                    clearChat();
+                    addMessage('تم مسح المحادثة. كيف يمكنني مساعدتك? 🧩', 'bot');
+                    showNotification('تم مسح المحادثة', 'success');
+                } else {
+                    showNotification('لا توجد محادثة نشطة', 'info');
+                }
+            });
+          
+            elements.copyLastBtn.addEventListener('click', () => {
+                const lastBotMessage = document.querySelector('.msg.bot:last-child .bubble');
+                if (lastBotMessage) {
+                    copyToClipboard(lastBotMessage.textContent);
+                } else {
+                    showNotification('لا يوجد رد لنسخه', 'info');
+                }
+            });
+          
+            // القائمة الجانبية للأجهزة المحمولة
+            elements.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+            elements.sidebarOverlay.addEventListener('click', toggleMobileMenu);
+          
+            // إعادة تنظيم القائمة عند تغيير حجم النافذة
+            window.addEventListener('resize', () => {
+                if (window.innerWidth <= 768) {
+                    elements.mobileMenuBtn.style.display = 'block';
+                } else {
+                    elements.mobileMenuBtn.style.display = 'none';
+                    elements.sidebar.classList.remove('open');
+                    elements.sidebarOverlay.classList.remove('open');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        // === تهيئة التطبيق ===
+        function initApp() {
+            loadTheme();
+            setupEventListeners();
+            autoResizeTextarea(elements.input);
+          
+            // عرض رسالة ترحيب عشوائية
+            const welcomeMessages = [
+                "مرحبًا! أنا LUKU AI، جاهز لتقديم ألغاز وتحديات ممتعة. 🧩",
+                "أهلاً بك! هل أنت مستعد لبعض الألغاز المثيرة? 🎯",
+                "مرحبًا بك في LUKU AI! لنختبر ذكاءك اليوم. 💡"
+            ];
+          
+            const randomIndex = Math.floor(Math.random() * welcomeMessages.length);
+            document.querySelector('.welcome h1').innerHTML = `${welcomeMessages[randomIndex]}`;
+        }
+
+        // بدء التطبيق عندما يتم تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
