@@ -145,7 +145,6 @@
           place-items: center;
           padding: 24px;
           text-align: center;
-          align-content: start; /* لتحديد المحاذاة لأعلى */
         }
 
         .welcome h1 {
@@ -164,7 +163,6 @@
           justify-content: center;
           margin-top: 20px;
           max-width: 600px;
-          width: 100%;
         }
 
         .chip {
@@ -176,7 +174,6 @@
           transition: var(--transition);
           font-size: 14px;
           color: white;
-          flex: 1 1 120px; /* تحسين مرونة الأزرار */
         }
 
         .chip:hover {
@@ -197,8 +194,6 @@
           flex-wrap: wrap;
           justify-content: center;
           margin: 16px 0;
-          max-width: 600px;
-          width: 100%;
         }
 
         .levels button {
@@ -210,7 +205,6 @@
           transition: var(--transition);
           color: var(--text);
           font-size: 14px;
-          flex: 1 1 100px; /* تحسين مرونة أزرار المستوى */
         }
 
         .levels button:hover {
@@ -863,12 +857,15 @@
 </head>
 <body class="theme-dark">
     <div id="app">
+        <!-- زر القائمة للأجهزة المحمولة -->
         <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="فتح القائمة" style="display: none;">
             <span>☰</span>
         </button>
       
+        <!-- overlay للقائمة الجانبية على الأجهزة المحمولة -->
         <div id="sidebar-overlay" class="sidebar-overlay"></div>
       
+        <!-- الشريط الجانبي -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-top">
                 <button id="new-chat" class="btn primary full">
@@ -877,7 +874,8 @@
             </div>
             <nav class="history" id="history-list">
                 <div class="history-empty" id="history-empty">لا توجد محادثات بعد</div>
-                </nav>
+                <!-- سيتم إضافة عناصر المحادثات هنا عبر JavaScript -->
+            </nav>
             <div class="sidebar-bottom">
                 <button id="toggle-theme" class="btn ghost full">
                     <span id="theme-icon">🌙</span> تغيير المظهر
@@ -886,6 +884,7 @@
             </div>
         </aside>
 
+        <!-- المحتوى الرئيسي -->
         <main class="main">
             <header class="chat-header">
                 <div class="chat-title">
@@ -929,32 +928,17 @@
         </main>
     </div>
 
+    <!-- منطقة الإشعارات -->
     <div id="notification-area"></div>
 
     <script>
-        // 📌 ملاحظة: المنفذ هو 3000 كما حددت، سنستخدم المسار النسبي (بدون http://localhost:3000) للتبسيط، لكن إذا واجهت مشاكل CORS، عليك إضافة الرابط الكامل.
-        // const API_URL = 'http://localhost:3000'; // إذا احتجت إلى مسار كامل
-        const API_URL = ''; // مسار نسبي، يفترض أن الواجهة الأمامية والخلفية تعملان على نفس الأساس (المنفذ 3000)
-
-        // === إنشاء أو تحميل معرف المستخدم (UserId) ===
-        function getUserId() {
-            let userId = localStorage.getItem('luku_user_id');
-            if (!userId) {
-                // توليد معرف فريد إذا لم يكن موجوداً
-                userId = 'user_' + Date.now() + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('luku_user_id', userId);
-            }
-            return userId;
-        }
-
         // === حالة التطبيق ===
         const state = {
-            userId: getUserId(),
             currentSessionId: null,
             selectedCategory: null,
             selectedLevel: null,
             isWaitingForResponse: false,
-            theme: localStorage.getItem('luku-theme') || 'dark'
+            theme: 'dark'
         };
 
         // === عناصر DOM ===
@@ -980,14 +964,18 @@
         function showNotification(message, type = 'info', duration = 3000) {
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
+          
             let icon = '💡';
             if (type === 'success') icon = '✅';
             if (type === 'error') icon = '❌';
+          
             notification.innerHTML = `
                 <span>${icon}</span>
                 <span>${message}</span>
             `;
+          
             elements.notificationArea.appendChild(notification);
+          
             setTimeout(() => {
                 notification.remove();
             }, duration);
@@ -1012,103 +1000,99 @@
             elements.sidebarOverlay.classList.toggle('open');
             document.body.style.overflow = elements.sidebar.classList.contains('open') ? 'hidden' : '';
         }
-        
-        // --- وظيفة جديدة: بدء الجلسة عبر /start_session ---
-        async function startNewSession(category, level) {
-            // التحقق من أننا لسنا في انتظار رد
-            if (state.isWaitingForResponse) return;
-            state.isWaitingForResponse = true;
-            elements.sendBtn.disabled = true;
 
-            // إخفاء قسم الترحيب والبدء في المحادثة
+        // === إدارة الجلسات والمحادثات ===
+        async function createNewSession(category = null, level = null) {
+            // إخفاء قسم الترحيب
             elements.welcomeSection.style.display = 'none';
-            clearChat();
-
+          
+            // إنشاء معرف جلسة جديد
+            state.currentSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             state.selectedCategory = category;
             state.selectedLevel = level;
-            state.currentSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-            showTypingIndicator();
-            showNotification(`جاري تحضير تحدي ${category} بمستوى ${level}... 🎯`, 'info');
-
+          
+            // إضافة رسالة تحميل مؤقتة
+            addMessage('جاري تحضير الألغاز... 🎯', 'bot');
+          
             try {
-                // 💡 استخدام المسار الجديد للبدء
-                const response = await fetch(API_URL + '/start_session', {
+                // إرسال طلب بدء المحادثة إلى الخادم
+                const response = await fetch('/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        userId: state.userId, // إرسال userId للخادم
+                        message: '', // رسالة فارغة للبدء
+                        sessionId: state.currentSessionId,
                         category: category,
                         level: level,
+                        isFirstMessage: true // علامة أن هذه أول رسالة
                     })
                 });
-
+              
                 const data = await response.json();
-
+              
                 if (data.success) {
-                    hideTypingIndicator();
+                    // مسح رسالة التحميل وإضافة الرد الحقيقي
+                    clearChat();
                     addMessage(data.reply, 'bot');
-                    addSessionToHistory(state.currentSessionId, category, level, data.character);
-                    showNotification('بدأت اللعبة! هيا نلعب! 🚀', 'success');
+                    showNotification('تم بدء محادثة جديدة', 'success');
                 } else {
-                     // التعامل مع أخطاء الخادم بوضوح
                     throw new Error(data.message || 'فشل في بدء المحادثة');
                 }
-
+              
             } catch (error) {
                 console.error('Error starting session:', error);
-                hideTypingIndicator();
-                addMessage(`❌ عذراً! حدث خطأ فني في بدء اللعبة. ${error.message}. تأكد من أن الخادم يعمل على **المنفذ 3000** وأن مفتاح Gemini API مُعد.`, 'bot');
-                showNotification('فشل بدء اللعبة', 'error');
-                // في حالة الفشل نُعيد ظهور شاشة الترحيب لتمكين المحاولة مجدداً
-                showWelcomeScreen();
-            } finally {
-                state.isWaitingForResponse = false;
-                elements.sendBtn.disabled = false;
+                // استخدام رد افتراضي إذا فشل الاتصال
+                clearChat();
+                addMessage(`مرحبًا! أنا LUKU AI، جاهز لتقديم ألغاز في مجال <strong>${category}</strong> بمستوى صعوبة <strong>${level}</strong>. هيا نبدأ! 🎯`, 'bot');
+                showNotification('تم بدء محادثة محلية', 'info');
             }
+          
+            // إضافة الجلسة إلى القائمة الجانبية
+            addSessionToHistory(state.currentSessionId, category, level);
         }
 
-        function addSessionToHistory(sessionId, category, level, characterName) {
+        function addSessionToHistory(sessionId, category, level) {
             // إخفاء الرسالة "لا توجد محادثات"
             elements.historyEmpty.style.display = 'none';
           
             // إنشاء عنصر جديد في القائمة الجانبية
             const historyItem = document.createElement('div');
-            historyItem.className = 'history-item active'; // تحديث الحالة النشطة
+            historyItem.className = 'history-item';
             historyItem.dataset.sessionId = sessionId;
-            
-            // إزالة حالة النشط من باقي العناصر
-            document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
+          
+            const categoryText = category ? ` (${category})` : '';
+            const levelText = level ? ` - ${level}` : '';
           
             historyItem.innerHTML = `
-                <div class="history-item-title">${characterName}</div>
-                <div class="history-item-preview">${category} - ${level}</div>
+                <div class="history-item-title">محادثة جديدة${categoryText}</div>
+                <div class="history-item-preview">بدء محادثة${levelText}</div>
             `;
           
             // إضافة حدث النقر
             historyItem.addEventListener('click', () => {
-                loadSession(sessionId); // حالياً هذه وظيفة محاكاة
+                loadSession(sessionId);
             });
           
-            // إضافة العنصر إلى الأعلى
-            elements.historyList.prepend(historyItem);
+            elements.historyList.appendChild(historyItem);
         }
 
         function loadSession(sessionId) {
-             // (هذه الدالة حالياً مجرد محاكاة، يمكن تطويرها مستقبلاً لتحميل سجل المحادثة من الخادم)
             showNotification('جاري تحميل المحادثة...', 'info');
-            state.currentSessionId = sessionId;
-            document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
-            const activeItem = document.querySelector(`[data-session-id="${sessionId}"]`);
-            if (activeItem) {
-                activeItem.classList.add('active');
-            }
-            
+          
+            // مسح المحادثة الحالية
             clearChat();
-            addMessage('مرحبًا بك مجددًا! الجلسة لم تُحفظ بالكامل بعد. اطلب لغزاً جديداً!', 'bot');
-            showNotification('تم تحميل المحادثة (محاكاة)', 'success');
+          
+            // إضافة رسالة تحميل
+            addMessage('جاري تحميل المحادثة...', 'bot');
+          
+            // محاكاة تحميل المحادثة
+            setTimeout(() => {
+                clearChat();
+                addMessage('مرحبًا بك مجددًا! كيف يمكنني مساعدتك اليوم? 🧩', 'bot');
+                showNotification('تم تحميل المحادثة', 'success');
+            }, 1000);
         }
 
         function clearChat() {
@@ -1117,29 +1101,13 @@
 
         function clearAllChats() {
             if (confirm('هل أنت متأكد من أنك تريد مسح جميع المحادثات? لا يمكن التراجع عن هذا الإجراء.')) {
-                // لا نمسح الـ userId من localStorage للحفاظ على استمرارية ملف التعريف
                 elements.historyList.innerHTML = '';
                 elements.historyEmpty.style.display = 'block';
                 clearChat();
                 state.currentSessionId = null;
-                showWelcomeScreen();
+                elements.welcomeSection.style.display = 'grid';
                 showNotification('تم مسح جميع المحادثات', 'success');
             }
-        }
-        
-        function showWelcomeScreen() {
-             // إعادة شاشة الترحيب إلى حالتها الأولية
-            elements.welcomeSection.style.display = 'grid';
-            elements.welcomeSection.querySelector('.hint').textContent = 'اختر مجال الألغاز أولاً:';
-            elements.welcomeSection.querySelector('.suggestions').style.display = 'flex';
-          
-            const levelsSection = elements.welcomeSection.querySelector('.levels');
-            if (levelsSection) {
-                levelsSection.remove();
-            }
-          
-            // إلغاء تحديد جميع الأزرار
-            elements.suggestions.forEach(b => b.classList.remove('selected'));
         }
 
         // === إدارة الرسائل ===
@@ -1207,15 +1175,60 @@
             }
         }
 
-        // === التواصل مع الخادم عبر /chat ===
+        // === التواصل مع الخادم ===
+        async function sendMessageToServer(message) {
+            showTypingIndicator();
+            state.isWaitingForResponse = true;
+          
+            try {
+                // إرسال الرسالة إلى الخادم
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: state.currentSessionId || 'default',
+                        category: state.selectedCategory || '',
+                        level: state.selectedLevel || '',
+                        isFirstMessage: false // هذه ليست أول رسالة
+                    })
+                });
+              
+                const data = await response.json();
+              
+                if (data.error) {
+                    throw new Error(data.message);
+                }
+              
+                return data.reply;
+              
+            } catch (error) {
+                console.error('Error communicating with server:', error);
+                showNotification('حدث خطأ في الاتصال بالخادم', 'error');
+                
+                // ردود افتراضية في حالة فشل الاتصال
+                const defaultReplies = [
+                    "أهلاً بك! أنا LUKU AI. جرب هذا اللغز: ما هو الشيء الذي كلما أخذت منه كبر؟ 🕳️",
+                    "مرحباً! ها هو لغز ممتع: يصعد وينزل ولا يتحرك من مكانه، ما هو؟ 📶",
+                    "أهلاً! لنبدأ بلغز: أخت خالك وليست خالتك، فمن تكون؟ 👩‍👦"
+                ];
+                return defaultReplies[Math.floor(Math.random() * defaultReplies.length)];
+            } finally {
+                hideTypingIndicator();
+                state.isWaitingForResponse = false;
+            }
+        }
+
+        // === إرسال الرسائل ===
         async function sendMessage() {
             const text = elements.input.value.trim();
             if (!text || state.isWaitingForResponse) return;
           
-            // يجب أن تكون الجلسة قد بدأت
+            // إذا لم تكن هناك جلسة نشطة، ننشئ واحدة
             if (!state.currentSessionId) {
-                showNotification('يرجى اختيار القسم والمستوى أولاً للبدء.', 'warning');
-                return;
+                createNewSession();
             }
           
             // إضافة رسالة المستخدم
@@ -1223,50 +1236,11 @@
             elements.input.value = '';
             autoResizeTextarea(elements.input);
           
-            showTypingIndicator();
-            state.isWaitingForResponse = true;
-            elements.sendBtn.disabled = true;
-
-            try {
-                // 💡 استخدام المسار /chat للدردشة بعد البدء
-                const response = await fetch(API_URL + '/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: text,
-                        userId: state.userId, // إرسال userId للخادم
-                        sessionId: state.currentSessionId,
-                        category: state.selectedCategory || 'عام',
-                        level: state.selectedLevel || 'سهل',
-                    })
-                });
-              
-                const data = await response.json();
-              
-                if (data.error) {
-                    // إذا أبلغ الخادم عن خطأ عدم وجود جلسة، نعود لشاشة البدء
-                    if (data.message.includes('لم يتم العثور على جلسة نشطة')) {
-                        showWelcomeScreen();
-                        throw new Error("انتهت صلاحية الجلسة، يرجى البدء من جديد.");
-                    }
-                    throw new Error(data.message);
-                }
-              
-                // إضافة رد البوت
-                hideTypingIndicator();
-                addMessage(data.reply, 'bot');
-              
-            } catch (error) {
-                console.error('Error communicating with server:', error);
-                hideTypingIndicator();
-                showNotification(`حدث خطأ في الاتصال: ${error.message}`, 'error');
-                addMessage(`❌ عذراً! حدث خطأ في الاتصال بالخادم. تفاصيل: ${error.message}.`, 'bot');
-            } finally {
-                state.isWaitingForResponse = false;
-                elements.sendBtn.disabled = false;
-            }
+            // إرسال الرسالة إلى الخادم والحصول على الرد
+            const reply = await sendMessageToServer(text);
+          
+            // إضافة رد البوت
+            addMessage(reply, 'bot');
         }
 
         // === إدارة المظهر ===
@@ -1289,10 +1263,12 @@
         }
 
         function loadTheme() {
-            if (state.theme === 'light') {
+            const savedTheme = localStorage.getItem('luku-theme');
+            if (savedTheme === 'light') {
                 document.body.classList.add('theme-light');
                 document.body.classList.remove('theme-dark');
                 elements.themeIcon.textContent = '☀️';
+                state.theme = 'light';
             }
         }
 
@@ -1319,8 +1295,13 @@
                     e.preventDefault();
                     sendMessage();
                 }
-                setTimeout(() => autoResizeTextarea(elements.input), 0);
+              
+                // التحكم في حجم textarea
+                if (e.key === 'Enter' && e.shiftKey) {
+                    setTimeout(() => autoResizeTextarea(elements.input), 0);
+                }
             });
+          
             elements.input.addEventListener('input', () => {
                 autoResizeTextarea(elements.input);
             });
@@ -1328,9 +1309,6 @@
             // اختيار المجال
             elements.suggestions.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    // إذا كنا في انتظار رد، نمنع التغيير
-                    if (state.isWaitingForResponse) return;
-
                     // إلغاء تحديد جميع الأزرار
                     elements.suggestions.forEach(b => b.classList.remove('selected'));
                     // تحديد الزر الحالي
@@ -1338,21 +1316,15 @@
                   
                     state.selectedCategory = btn.dataset.category;
                   
-                    // إزالة أي قائمة مستويات سابقة
-                    const existingLevels = elements.welcomeSection.querySelector('.levels');
-                    if (existingLevels) {
-                        existingLevels.remove();
-                    }
-                  
                     // الانتقال إلى اختيار المستوى
                     elements.welcomeSection.querySelector('.hint').textContent = 'اختر مستوى الصعوبة:';
-                    elements.welcomeSection.querySelector('.suggestions').style.display = 'flex';
+                    elements.welcomeSection.querySelector('.suggestions').style.display = 'none';
                   
                     const levelsHtml = `
                         <div class="levels">
-                            <button data-level="سهل" class="chip">سهل 🌱</button>
+                            <button data-level="مبتدئ" class="chip">مبتدئ 🌱</button>
                             <button data-level="متوسط" class="chip">متوسط 💡</button>
-                            <button data-level="صعب" class="chip">صعب 🤯</button>
+                            <button data-level="خبير" class="chip">خبير 🤯</button>
                         </div>
                     `;
                   
@@ -1367,8 +1339,7 @@
                             levelBtn.classList.add('selected');
                           
                             state.selectedLevel = levelBtn.dataset.level;
-                            // 🚀 استخدام وظيفة البدء الجديدة
-                            startNewSession(state.selectedCategory, state.selectedLevel);
+                            createNewSession(state.selectedCategory, state.selectedLevel);
                         });
                     });
                 });
@@ -1376,15 +1347,35 @@
           
             // الأزرار الأخرى
             elements.newChatBtn.addEventListener('click', () => {
-                state.currentSessionId = null; // إنهاء الجلسة الحالية منطقياً
-                showWelcomeScreen();
+                state.selectedCategory = null;
+                state.selectedLevel = null;
+                elements.welcomeSection.style.display = 'grid';
+                elements.welcomeSection.querySelector('.hint').textContent = 'اختر مجال الألغاز أولاً:';
+                elements.welcomeSection.querySelector('.suggestions').style.display = 'flex';
+              
+                const levelsSection = elements.welcomeSection.querySelector('.levels');
+                if (levelsSection) {
+                    levelsSection.remove();
+                }
+              
+                // إلغاء تحديد جميع الأزرار
+                elements.suggestions.forEach(b => b.classList.remove('selected'));
+              
                 clearChat();
                 showNotification('تم إعداد محادثة جديدة', 'success');
             });
           
             elements.toggleThemeBtn.addEventListener('click', toggleTheme);
           
-            elements.clearChatBtn.addEventListener('click', clearAllChats);
+            elements.clearChatBtn.addEventListener('click', () => {
+                if (state.currentSessionId) {
+                    clearChat();
+                    addMessage('تم مسح المحادثة. كيف يمكنني مساعدتك? 🧩', 'bot');
+                    showNotification('تم مسح المحادثة', 'success');
+                } else {
+                    showNotification('لا توجد محادثة نشطة', 'info');
+                }
+            });
           
             // القائمة الجانبية للأجهزة المحمولة
             elements.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
@@ -1404,13 +1395,13 @@
           
             // عرض رسالة ترحيب عشوائية
             const welcomeMessages = [
-                "مرحبًا! 👋 أنا LUKU AI",
-                "أهلاً بك! 👋 أنا LUKU AI",
-                "مرحبًا بك في LUKU AI! 👋",
+                "مرحبًا! أنا LUKU AI، جاهز لتقديم ألغاز وتحديات ممتعة. 🧩",
+                "أهلاً بك! هل أنت مستعد لبعض الألغاز المثيرة? 🎯",
+                "مرحبًا بك في LUKU AI! لنختبر ذكاءك اليوم. 💡"
             ];
           
             const randomIndex = Math.floor(Math.random() * welcomeMessages.length);
-            document.querySelector('.welcome h1').innerHTML = `${welcomeMessages[randomIndex]} <span>LUKU AI</span>`;
+            document.querySelector('.welcome h1').innerHTML = `${welcomeMessages[randomIndex]}`;
         }
 
         // بدء التطبيق عندما يتم تحميل الصفحة
