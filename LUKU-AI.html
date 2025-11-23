@@ -231,13 +231,27 @@
 
         .msg {
           display: grid;
-          grid-template-columns: 36px 1fr auto;
+          grid-template-columns: 36px auto 1fr;
           gap: 12px;
           align-items: flex-start;
           width: 100%;
           max-width: 900px;
           margin: 0 auto;
           animation: fadeIn 0.3s ease;
+        }
+
+        .msg.user {
+          direction: ltr;
+        }
+
+        .msg.user .bubble-container {
+          grid-column: 2 / span 2;
+          direction: rtl;
+        }
+
+        .msg.bot .bubble-container {
+          grid-column: 1 / span 2;
+          direction: rtl;
         }
 
         @keyframes fadeIn {
@@ -257,6 +271,23 @@
           flex-shrink: 0;
         }
 
+        .msg.user .avatar {
+          background: var(--brand);
+          color: var(--send-btn-text);
+          border: none;
+          grid-column: 1;
+        }
+
+        .msg.bot .avatar {
+          grid-column: 1;
+        }
+
+        .bubble-container {
+          display: flex;
+          flex-direction: column;
+          position: relative;
+        }
+
         .msg .bubble {
           background: var(--bot-bubble);
           border: 1px solid var(--border);
@@ -269,38 +300,27 @@
           flex: 1;
         }
 
-        .msg.user {
-          direction: ltr;
-        }
-
         .msg.user .bubble {
           background: var(--user-bubble);
-          direction: rtl;
         }
 
-        .msg.user .avatar {
-          background: var(--brand);
-          color: var(--send-btn-text);
-          border: none;
-        }
-
-        /* زر النسخ لكل رسالة */
+        /* زر النسخ لكل رسالة - محسّن */
         .copy-btn {
           background: transparent;
           border: 1px solid var(--border);
           color: var(--muted);
-          padding: 6px 8px;
+          padding: 4px 8px;
           border-radius: 6px;
           cursor: pointer;
           transition: var(--transition);
-          font-size: 12px;
-          opacity: 0;
-          visibility: hidden;
+          font-size: 11px;
+          margin-top: 4px;
+          align-self: flex-start;
+          opacity: 0.7;
         }
 
         .msg:hover .copy-btn {
           opacity: 1;
-          visibility: visible;
         }
 
         .copy-btn:hover {
@@ -351,7 +371,7 @@
 
         .input-wrap {
           display: grid;
-          grid-template-columns: 1fr auto;
+          grid-template-columns: auto 1fr;
           gap: 8px;
           align-items: end;
           width: min(900px, 100%);
@@ -389,7 +409,7 @@
           align-items: center;
         }
 
-        /* زر الإرسال المحسن */
+        /* زر الإرسال المحسن - في الجانب الأيسر */
         .send-btn {
           background: var(--send-btn-bg);
           border: 1px solid var(--send-btn-bg);
@@ -406,6 +426,7 @@
           align-items: center;
           justify-content: center;
           gap: 6px;
+          order: -1; /* نقل الزر إلى البداية (اليسار) */
         }
 
         .send-btn:hover {
@@ -560,7 +581,7 @@
           }
 
           .msg {
-            grid-template-columns: 32px 1fr auto;
+            grid-template-columns: 32px auto 1fr;
             gap: 8px;
           }
 
@@ -572,9 +593,8 @@
 
           .copy-btn {
             opacity: 1;
-            visibility: visible;
             padding: 4px 6px;
-            font-size: 11px;
+            font-size: 10px;
           }
 
           .chat-header {
@@ -603,7 +623,7 @@
           }
 
           .input-wrap {
-            grid-template-columns: 1fr auto;
+            grid-template-columns: auto 1fr;
             gap: 8px;
           }
 
@@ -626,7 +646,7 @@
           }
 
           .msg {
-            grid-template-columns: 28px 1fr auto;
+            grid-template-columns: 28px auto 1fr;
             gap: 6px;
           }
 
@@ -643,7 +663,7 @@
 
           .copy-btn {
             padding: 3px 5px;
-            font-size: 10px;
+            font-size: 9px;
           }
 
           .composer {
@@ -651,7 +671,7 @@
           }
 
           .input-wrap {
-            grid-template-columns: 1fr auto;
+            grid-template-columns: auto 1fr;
             gap: 6px;
             padding: 10px;
           }
@@ -713,12 +733,11 @@
         /* للشاشات الصغيرة جداً (360px فأقل) */
         @media (max-width: 360px) {
           .input-wrap {
-            grid-template-columns: 1fr;
+            grid-template-columns: auto 1fr;
             gap: 8px;
           }
 
           .send-btn {
-            width: 100%;
             min-width: auto;
           }
 
@@ -896,13 +915,13 @@
 
             <footer class="composer">
                 <div class="input-wrap">
-                    <textarea id="input" rows="1" placeholder="اكتب رسالتك… (Enter للإرسال / Shift+Enter لسطر جديد)" aria-label="رسالتك"></textarea>
                     <div class="controls">
                         <button id="send" class="send-btn">
-                            <span>إرسال</span>
                             <span>🚀</span>
+                            <span>إرسال</span>
                         </button>
                     </div>
+                    <textarea id="input" rows="1" placeholder="اكتب رسالتك… (Enter للإرسال / Shift+Enter لسطر جديد)" aria-label="رسالتك"></textarea>
                 </div>
                 <div class="tos">© 2025 جميع الحقوق محفوظة — <strong>Luai Kulaib</strong></div>
             </footer>
@@ -1097,12 +1116,13 @@
             msgDiv.className = `msg ${sender}`;
           
             const avatar = sender === 'bot' ? '🧩' : '👤';
-            const bubbleClass = sender === 'bot' ? '' : 'user';
           
             msgDiv.innerHTML = `
                 <div class="avatar">${avatar}</div>
-                <div class="bubble ${bubbleClass}">${text}</div>
-                ${sender === 'bot' ? '<button class="copy-btn" title="نسخ الرسالة">📋</button>' : ''}
+                <div class="bubble-container">
+                    <div class="bubble">${text}</div>
+                    ${sender === 'bot' ? '<button class="copy-btn" title="نسخ الرسالة">📋 نسخ</button>' : ''}
+                </div>
             `;
           
             elements.chatBox.appendChild(msgDiv);
@@ -1116,10 +1136,10 @@
                     copyToClipboard(messageText);
                     
                     // تغيير مظهر الزر مؤقتاً للإشارة إلى النسخ
-                    copyBtn.textContent = '✅';
+                    copyBtn.textContent = '✅ تم النسخ';
                     copyBtn.classList.add('copied');
                     setTimeout(() => {
-                        copyBtn.textContent = '📋';
+                        copyBtn.textContent = '📋 نسخ';
                         copyBtn.classList.remove('copied');
                     }, 2000);
                 });
@@ -1133,11 +1153,13 @@
           
             typingDiv.innerHTML = `
                 <div class="avatar">🧩</div>
-                <div class="bubble">
-                    <div class="typing-indicator">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
+                <div class="bubble-container">
+                    <div class="bubble">
+                        <div class="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
                     </div>
                 </div>
             `;
