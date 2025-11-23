@@ -92,7 +92,7 @@ def generate_gemini_response(category, level, user_message, conversation_context
         return generate_fallback_response(intent, category, level)
     
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = f"""
         {SMART_PROMPT.format(
@@ -148,9 +148,9 @@ def initialize_user_session(user_id):
 def serve_index():
     """خدمة واجهة التطبيق الرئيسية"""
     try:
-        return send_from_directory('.', 'index.html')
+        return send_from_directory('.', 'LUKU-AI.html')
     except:
-        return "⚠️ ملف index.html غير موجود. يرجى التأكد من وجود الملف في المجلد الرئيسي."
+        return "⚠️ ملف LUKU-AI.html غير موجود. يرجى التأكد من وجود الملف في المجلد الرئيسي."
 
 @app.route('/<path:filename>')
 def serve_static(filename):
