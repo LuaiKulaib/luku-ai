@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import google.generativeai as genai
 import uuid
@@ -106,6 +106,270 @@ def generate_gemini_response(category, level, user_message, conversation_context
         
         قم بإنشاء رد فريد ومبتكر完全基于السياق الحالي. لا تستخدم أي محتوى مخزن مسبقاً.
         """
+        
+        response = model.generate_content(prompt)
+        return response.text.strip()
+        
+    except Exception as e:
+        print(f"❌ خطأ في توليد الرد من Gemini: {e}")
+        return generate_fallback_response(intent, category, level)
+
+def generate_fallback_response(intent, category, level):
+    """رد احتياطي عام (بدون ألغاز مجهزة)"""
+    
+    if intent == 'request_puzzle':
+        return f"أهلاً بك! دعني أفكر في لغز مبتكر في مجال {category} بمستوى {level}... 💭 بينما أفكر، ما نوع التحدي الذي تفضله؟"
+    
+    elif intent == 'challenge_bot':
+        return "أتقبل تحديك! 🏆 دعنا نبدأ بمنافسة ذهنية. ما هي أنواع الألغاز التي تثير اهتمامك؟"
+    
+    elif intent == 'provide_answer':
+        return "شكراً لمشاركة إجابتك! 🤔 هل تريد أن نناقشها، أم تفضل تحدياً جديداً؟"
+    
+    elif intent == 'request_help':
+        return "سأكون سعيداً بمساعدتك! 🆘 أخبرني ما الذي تستصعبه، وسأقدم لك التوجيه المناسب."
+    
+    elif intent == 'casual_chat':
+        return "أهلاً وسهلاً! 😊 أنا LUKU AI، شغوف بتطوير التفكير النقدي من خلال التحديات الذهنية."
+    
+    else:
+        return "أفهم ما تقصد! 🧠 كمحفز للتفكير، أدعوك لتجربة تحديات ذهنية تنمي مهاراتك التحليلية."
+
+def initialize_user_session(user_id):
+    """تهيئة جلسة المستخدم"""
+    if user_id not in user_profiles:
+        user_profiles[user_id] = {
+            'sessions_count': 0,
+            'created_at': datetime.now().isoformat(),
+            'last_active': datetime.now().isoformat()
+        }
+
+@app.route('/')
+def serve_index():
+    """خدمة واجهة التطبيق الرئيسية"""
+    try:
+        # محاولة تحميل ملف index.html من المجلد الحالي
+        return send_from_directory('.', 'index.html')
+    except:
+        # إذا لم يوجد الملف، نعيد واجهة بديلة
+        return """
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>LUKU AI - مساعد الألغاز الذكي</title>
+            <style>
+                body {
+                    margin: 0;
+                    font-family: system-ui, sans-serif;
+                    background: #0b0e14;
+                    color: #e5e7eb;
+                    height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    text-align: center;
+                }
+                .container {
+                    max-width: 600px;
+                    padding: 20px;
+                }
+                h1 {
+                    color: #22d3ee;
+                    font-size: 2.5rem;
+                    margin-bottom: 10px;
+                }
+                .subtitle {
+                    font-size: 1.2rem;
+                    margin-bottom: 30px;
+                    color: #9ca3af;
+                }
+                .features {
+                    background: #0f131b;
+                    padding: 20px;
+                    border-radius: 10px;
+                    border: 1px solid #1f2430;
+                    margin-bottom: 20px;
+                }
+                .feature-item {
+                    margin: 10px 0;
+                    padding: 10px;
+                    background: #0b0e14;
+                    border-radius: 5px;
+                }
+                .warning {
+                    color: #f59e0b;
+                    background: #451a03;
+                    padding: 15px;
+                    border-radius: 5px;
+                    margin: 20px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🧩 LUKU AI</h1>
+                <div class="subtitle">المساعد الذكي للألغاز والتحديات الفكرية</div>
+                
+                <div class="features">
+                    <div class="feature-item">✅ الخادم يعمل بشكل صحيح</div>
+                    <div class="feature-item">🎯 التوليد الديناميكي: 100% بواسطة الذكاء الاصطناعي</div>
+                    <div class="feature-item">🚀 لا توجد ألغاز مخزنة مسبقاً</div>
+                </div>
+                
+                <div class="warning">
+                    ⚠️ ملاحظة: واجهة التطبيق الكاملة غير متوفرة حالياً.
+                    <br>يرجى التأكد من وجود ملف index.html في المجلد الرئيسي.
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <p>لاختبار الخادم، يمكنك استخدام API مباشرة:</p>
+                    <code style="background: #1a1f2e; padding: 10px; border-radius: 5px; display: block;">
+                        POST /chat<br>
+                        { "message": "مرحباً" }
+                    </code>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    """خدمة الملفات الثابتة"""
+    try:
+        return send_from_directory('.', filename)
+    except:
+        return "الملف غير موجود", 404
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """معالجة المحادثة"""
+    try:
+        data = request.get_json()
+        user_message = data.get('message', '').strip()
+        session_id = data.get('sessionId', str(uuid.uuid4()))
+        category = data.get('category', 'عام')
+        level = data.get('level', 'متوسط')
+        user_id = data.get('userId', f'user_{uuid.uuid4().hex[:8]}')
+        
+        if not user_message:
+            return jsonify({
+                'success': False,
+                'reply': 'الرسالة فارغة. رجاءً اكتب شيئاً للتواصل! 💬'
+            })
+        
+        # تهيئة المستخدم
+        initialize_user_session(user_id)
+        user_profiles[user_id]['last_active'] = datetime.now().isoformat()
+        
+        # الحصول على سياق المحادثة
+        conversation_context = get_conversation_context(session_id)
+        
+        # تحليل نية المستخدم
+        user_intent = analyze_user_intent(user_message)
+        
+        # توليد الرد باستخدام Gemini
+        bot_response = generate_gemini_response(
+            category, level, user_message, conversation_context, user_intent
+        )
+        
+        # حفظ المحادثة
+        if session_id not in chat_sessions:
+            chat_sessions[session_id] = {
+                'user_id': user_id,
+                'category': category,
+                'level': level,
+                'history': [],
+                'start_time': datetime.now().isoformat(),
+                'message_count': 0
+            }
+        
+        chat_sessions[session_id]['history'].append({
+            'user': user_message,
+            'assistant': bot_response,
+            'timestamp': datetime.now().isoformat(),
+            'intent': user_intent
+        })
+        
+        chat_sessions[session_id]['message_count'] += 1
+        
+        # تحديث إحصائيات المستخدم
+        user_profiles[user_id]['sessions_count'] = len([
+            s for s in chat_sessions.values() 
+            if s['user_id'] == user_id
+        ])
+        
+        return jsonify({
+            'success': True,
+            'reply': bot_response,
+            'sessionId': session_id,
+            'userId': user_id,
+            'intent': user_intent,
+            'messageCount': chat_sessions[session_id]['message_count']
+        })
+        
+    except Exception as e:
+        print(f"❌ خطأ في معالجة المحادثة: {e}")
+        return jsonify({
+            'success': False,
+            'reply': 'عذراً، حدث خطأ غير متوقع. يرجى إعادة المحاولة. 🛠️'
+        }), 500
+
+@app.route('/user/<user_id>/profile')
+def get_user_profile(user_id):
+    """الحصول على ملف المستخدم"""
+    if user_id in user_profiles:
+        profile = user_profiles[user_id]
+        return jsonify({
+            'success': True,
+            'profile': {
+                'userId': user_id,
+                'sessionsCount': profile['sessions_count'],
+                'memberSince': profile['created_at'],
+                'lastActive': profile['last_active']
+            }
+        })
+    return jsonify({'success': False, 'message': 'المستخدم غير موجود'}), 404
+
+@app.route('/session/<session_id>')
+def get_session_info(session_id):
+    """الحصول على معلومات الجلسة"""
+    if session_id in chat_sessions:
+        session_data = chat_sessions[session_id]
+        return jsonify({
+            'success': True,
+            'session': {
+                'sessionId': session_id,
+                'category': session_data['category'],
+                'level': session_data['level'],
+                'messageCount': session_data['message_count'],
+                'startTime': session_data['start_time']
+            }
+        })
+    return jsonify({'success': False, 'message': 'الجلسة غير موجودة'}), 404
+
+@app.route('/health')
+def health_check():
+    """فحص صحة الخادم"""
+    gemini_status = "🟢 نشط" if GEMINI_API_KEY else "🔴 غير متوفر"
+    
+    return jsonify({
+        'status': '🟢 الخادم يعمل',
+        'gemini_api': gemini_status,
+        'active_sessions': len(chat_sessions),
+        'total_users': len(user_profiles),
+        'timestamp': datetime.now().isoformat()
+    })
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 3000))
+    print(f"🚀 بدء تشغيل LUKU AI على المنفذ {port}")
+    print(f"📁 يخدم الملفات من: {os.getcwd()}")
+    print(f"🎯 التوليد الديناميكي: 100% بواسطة الذكاء الاصطناعي")
+    app.run(host='0.0.0.0', port=port, debug=False)        """
         
         response = model.generate_content(prompt)
         return response.text.strip()
