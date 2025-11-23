@@ -62,7 +62,7 @@ def initialize_user_session(user_id, category='عام', level='سهل'):
     # 💡 يتم استخدام وضع المحادثة مع Gemini هنا للحفاظ على سياق الدردشة
     if user_id not in chat_sessions or 'gemini_chat' not in chat_sessions[user_id]:
          # إنشاء جلسة محادثة جديدة مع ذاكرة
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         chat = model.start_chat(
             history=[],
             # 💡 يتم إعطاء Gemini شخصيته في بداية المحادثة
@@ -112,7 +112,7 @@ def generate_puzzle_data(category, level):
     }}
     """
     
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     response = model.generate_content(
         prompt,
         config=genai.types.GenerateContentConfig(
@@ -147,7 +147,7 @@ def evaluate_and_reply_with_gemini(user_id, user_attempt, current_puzzle, correc
     3. يجب أن يكون الرد لاذعاً ومضحكاً ولا يتجاوز سطرين.
     """
     
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     response = model.generate_content(prompt)
     full_text = response.text.strip()
     
@@ -318,5 +318,5 @@ def chat():
         }), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 3000))
     app.run(host='0.0.0.0', port=port, debug=False)
