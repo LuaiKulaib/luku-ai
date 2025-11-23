@@ -20,6 +20,9 @@
           --warning: #f59e0b;
           --error: #ef4444;
           --transition: all 0.3s ease;
+          --send-btn-bg: #22d3ee;
+          --send-btn-text: #071318;
+          --send-btn-hover: #06b6d4;
         }
 
         * {
@@ -42,7 +45,7 @@
           height: 100vh;
         }
 
-        /* تحسين الشريط الجانبي - أصغر حجمًا */
+        /* === تحسينات الشريط الجانبي === */
         .sidebar {
           display: flex;
           flex-direction: column;
@@ -97,7 +100,7 @@
           background: rgba(34, 211, 238, 0.1);
         }
 
-        /* تحسين المحتوى الرئيسي - مساحة أكبر */
+        /* === تحسينات المحتوى الرئيسي === */
         .main {
           display: grid;
           grid-template-rows: auto 1fr auto;
@@ -182,7 +185,7 @@
         .chip.selected {
           background: var(--brand);
           border-color: var(--brand);
-          color: #071318;
+          color: var(--send-btn-text);
         }
 
         .levels {
@@ -212,10 +215,10 @@
         .levels button.selected {
           background: var(--brand);
           border-color: var(--brand);
-          color: #071318;
+          color: var(--send-btn-text);
         }
 
-        /* تحسين منطقة المحادثة - مساحة أكبر */
+        /* === منطقة المحادثة المحسنة === */
         .chat {
           overflow: auto;
           padding: 16px;
@@ -228,7 +231,7 @@
 
         .msg {
           display: grid;
-          grid-template-columns: 36px 1fr;
+          grid-template-columns: 36px 1fr auto;
           gap: 12px;
           align-items: flex-start;
           width: 100%;
@@ -262,7 +265,8 @@
           white-space: pre-wrap;
           word-wrap: break-word;
           line-height: 1.5;
-          max-width: 80%;
+          max-width: 100%;
+          flex: 1;
         }
 
         .msg.user {
@@ -276,8 +280,39 @@
 
         .msg.user .avatar {
           background: var(--brand);
-          color: #00111a;
+          color: var(--send-btn-text);
           border: none;
+        }
+
+        /* زر النسخ لكل رسالة */
+        .copy-btn {
+          background: transparent;
+          border: 1px solid var(--border);
+          color: var(--muted);
+          padding: 6px 8px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: var(--transition);
+          font-size: 12px;
+          opacity: 0;
+          visibility: hidden;
+        }
+
+        .msg:hover .copy-btn {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .copy-btn:hover {
+          border-color: var(--brand);
+          color: var(--brand);
+          background: rgba(34, 211, 238, 0.1);
+        }
+
+        .copy-btn.copied {
+          background: var(--success);
+          border-color: var(--success);
+          color: white;
         }
 
         .typing-indicator {
@@ -303,7 +338,7 @@
           30% { transform: translateY(-5px); }
         }
 
-        /* تحسين منطقة الكتابة */
+        /* === منطقة الكتابة المحسنة === */
         .composer {
           position: sticky;
           bottom: 0;
@@ -316,7 +351,7 @@
 
         .input-wrap {
           display: grid;
-          grid-template-columns: 1fr auto auto;
+          grid-template-columns: 1fr auto;
           gap: 8px;
           align-items: end;
           width: min(900px, 100%);
@@ -345,12 +380,44 @@
           font-family: inherit;
           line-height: 1.5;
           direction: rtl;
+          padding: 8px 0;
         }
 
         .controls {
-          display: inline-flex;
-          gap: 6px;
+          display: flex;
+          gap: 8px;
           align-items: center;
+        }
+
+        /* زر الإرسال المحسن */
+        .send-btn {
+          background: var(--send-btn-bg);
+          border: 1px solid var(--send-btn-bg);
+          color: var(--send-btn-text);
+          padding: 10px 16px;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: var(--transition);
+          font-family: inherit;
+          font-size: 14px;
+          font-weight: 600;
+          min-width: 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+
+        .send-btn:hover {
+          background: var(--send-btn-hover);
+          border-color: var(--send-btn-hover);
+          transform: translateY(-1px);
+        }
+
+        .send-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
         }
 
         .btn {
@@ -373,13 +440,12 @@
         .btn.primary {
           background: var(--brand);
           border-color: var(--brand);
-          color: #071318;
+          color: var(--send-btn-text);
         }
 
         .btn.primary:hover {
-          background: #06b6d4;
-          border-color: #06b6d4;
-          color: #071318;
+          background: var(--send-btn-hover);
+          border-color: var(--send-btn-hover);
         }
 
         .btn.ghost {
@@ -415,7 +481,7 @@
           text-align: center;
         }
 
-        /* تحسينات للوضع الفاتح */
+        /* === تحسينات للوضع الفاتح === */
         body.theme-light {
           --bg: #f8fafc;
           --text: #1e293b;
@@ -425,13 +491,25 @@
           --brand: #0ea5e9;
           --user-bubble: #e0f2fe;
           --bot-bubble: #f1f5f9;
+          --send-btn-bg: #0ea5e9;
+          --send-btn-text: #ffffff;
+          --send-btn-hover: #0284c7;
         }
 
         body.theme-light .sidebar {
           border-inline-end: 1px solid var(--border);
         }
 
-        /* تحسينات للاستجابة على الأجهزة المحمولة */
+        body.theme-light .btn.primary,
+        body.theme-light .send-btn,
+        body.theme-light .chip.selected,
+        body.theme-light .levels button.selected {
+          color: #ffffff !important;
+        }
+
+        /* === تحسينات الاستجابة للشاشات المختلفة === */
+        
+        /* للأجهزة اللوحية (768px فأقل) */
         @media (max-width: 768px) {
           #app {
             grid-template-columns: 1fr;
@@ -442,8 +520,8 @@
             top: 0;
             right: 0;
             bottom: 0;
-            width: 220px;
-            z-index: 100;
+            width: 280px;
+            z-index: 1000;
             transform: translateX(100%);
             transition: transform 0.3s ease;
           }
@@ -459,7 +537,7 @@
             bottom: 0;
             left: 0;
             background: rgba(0, 0, 0, 0.5);
-            z-index: 99;
+            z-index: 999;
             display: none;
           }
        
@@ -472,27 +550,214 @@
             position: fixed;
             top: 16px;
             right: 16px;
-            z-index: 101;
+            z-index: 1001;
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 8px;
+            padding: 8px 12px;
             cursor: pointer;
+            font-size: 18px;
           }
-       
+
+          .msg {
+            grid-template-columns: 32px 1fr auto;
+            gap: 8px;
+          }
+
+          .msg .avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+          }
+
+          .copy-btn {
+            opacity: 1;
+            visibility: visible;
+            padding: 4px 6px;
+            font-size: 11px;
+          }
+
+          .chat-header {
+            padding: 10px 12px;
+          }
+
+          .name {
+            font-size: 16px;
+          }
+
+          .subtitle {
+            font-size: 12px;
+          }
+
+          .welcome h1 {
+            font-size: 1.5rem;
+          }
+
+          .suggestions {
+            gap: 6px;
+          }
+
+          .chip {
+            padding: 8px 12px;
+            font-size: 13px;
+          }
+
+          .input-wrap {
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+          }
+
+          .send-btn {
+            padding: 8px 14px;
+            min-width: 70px;
+            font-size: 13px;
+          }
+        }
+
+        /* للهواتف المحمولة (480px فأقل) */
+        @media (max-width: 480px) {
+          .main {
+            grid-template-rows: auto 1fr auto;
+          }
+
+          .chat {
+            padding: 12px;
+            gap: 12px;
+          }
+
+          .msg {
+            grid-template-columns: 28px 1fr auto;
+            gap: 6px;
+          }
+
+          .msg .avatar {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+          }
+
+          .msg .bubble {
+            padding: 10px 12px;
+            font-size: 14px;
+          }
+
+          .copy-btn {
+            padding: 3px 5px;
+            font-size: 10px;
+          }
+
+          .composer {
+            padding: 12px;
+          }
+
+          .input-wrap {
+            grid-template-columns: 1fr auto;
+            gap: 6px;
+            padding: 10px;
+          }
+
+          .send-btn {
+            padding: 8px 12px;
+            min-width: 60px;
+            font-size: 12px;
+          }
+
+          .controls {
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .welcome {
+            padding: 16px;
+          }
+
+          .welcome h1 {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+          }
+
           .suggestions, .levels {
             flex-direction: column;
             align-items: stretch;
+            gap: 6px;
           }
-       
+
+          .chip, .levels button {
+            width: 100%;
+            text-align: center;
+          }
+
+          .mobile-menu-btn {
+            top: 12px;
+            right: 12px;
+            padding: 6px 10px;
+            font-size: 16px;
+          }
+
+          .sidebar {
+            width: 100%;
+          }
+        }
+
+        /* للشاشات الكبيرة جداً (1200px فما فوق) */
+        @media (min-width: 1200px) {
+          .msg {
+            max-width: 1000px;
+          }
+
           .input-wrap {
-            grid-template-columns: 1fr auto;
+            max-width: 1000px;
           }
-       
-          .controls {
-            grid-column: 1 / -1;
-            justify-content: flex-end;
-            margin-top: 8px;
+        }
+
+        /* للشاشات الصغيرة جداً (360px فأقل) */
+        @media (max-width: 360px) {
+          .input-wrap {
+            grid-template-columns: 1fr;
+            gap: 8px;
+          }
+
+          .send-btn {
+            width: 100%;
+            min-width: auto;
+          }
+
+          .chat-header {
+            flex-direction: column;
+            gap: 8px;
+            text-align: center;
+          }
+
+          .welcome h1 {
+            font-size: 1.1rem;
+          }
+        }
+
+        /* للوضع الأفقي على الهواتف */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .main {
+            grid-template-rows: auto 1fr auto;
+          }
+
+          .chat-header {
+            padding: 8px 12px;
+          }
+
+          .chat {
+            padding: 8px 12px;
+            gap: 8px;
+          }
+
+          .composer {
+            padding: 8px 12px;
+          }
+
+          .input-wrap {
+            padding: 8px;
+          }
+
+          .send-btn {
+            padding: 6px 10px;
           }
         }
 
@@ -549,12 +814,32 @@
         .chat::-webkit-scrollbar-thumb:hover {
           background: var(--muted);
         }
+
+        /* تحسينات الوصول */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+
+        /* تحسينات للشاشات العريضة */
+        @media (min-width: 1400px) {
+          .msg {
+            max-width: 1100px;
+          }
+          
+          .input-wrap {
+            max-width: 1100px;
+          }
+        }
     </style>
 </head>
 <body class="theme-dark">
     <div id="app">
         <!-- زر القائمة للأجهزة المحمولة -->
-        <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="فتح القائمة">
+        <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="فتح القائمة" style="display: none;">
             <span>☰</span>
         </button>
       
@@ -613,8 +898,10 @@
                 <div class="input-wrap">
                     <textarea id="input" rows="1" placeholder="اكتب رسالتك… (Enter للإرسال / Shift+Enter لسطر جديد)" aria-label="رسالتك"></textarea>
                     <div class="controls">
-                        <button id="copy-last" class="icon-btn" title="نسخ آخر رد">📋</button>
-                        <button id="send" class="btn primary">إرسال</button>
+                        <button id="send" class="send-btn">
+                            <span>إرسال</span>
+                            <span>🚀</span>
+                        </button>
                     </div>
                 </div>
                 <div class="tos">© 2025 جميع الحقوق محفوظة — <strong>Luai Kulaib</strong></div>
@@ -648,7 +935,6 @@
             toggleThemeBtn: document.getElementById("toggle-theme"),
             themeIcon: document.getElementById("theme-icon"),
             clearChatBtn: document.getElementById("clear-chat"),
-            copyLastBtn: document.getElementById("copy-last"),
             mobileMenuBtn: document.getElementById("mobile-menu-btn"),
             sidebar: document.getElementById("sidebar"),
             sidebarOverlay: document.getElementById("sidebar-overlay"),
@@ -697,7 +983,7 @@
         }
 
         // === إدارة الجلسات والمحادثات ===
-        function createNewSession(category = null, level = null) {
+        async function createNewSession(category = null, level = null) {
             // إخفاء قسم الترحيب
             elements.welcomeSection.style.display = 'none';
           
@@ -706,17 +992,46 @@
             state.selectedCategory = category;
             state.selectedLevel = level;
           
-            // إضافة رسالة ترحيب بناءً على المجال والمستوى
-            if (category && level) {
+            // إضافة رسالة تحميل مؤقتة
+            addMessage('جاري تحضير الألغاز... 🎯', 'bot');
+          
+            try {
+                // إرسال طلب بدء المحادثة إلى الخادم
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: '', // رسالة فارغة للبدء
+                        sessionId: state.currentSessionId,
+                        category: category,
+                        level: level,
+                        isFirstMessage: true // علامة أن هذه أول رسالة
+                    })
+                });
+              
+                const data = await response.json();
+              
+                if (data.success) {
+                    // مسح رسالة التحميل وإضافة الرد الحقيقي
+                    clearChat();
+                    addMessage(data.reply, 'bot');
+                    showNotification('تم بدء محادثة جديدة', 'success');
+                } else {
+                    throw new Error(data.message || 'فشل في بدء المحادثة');
+                }
+              
+            } catch (error) {
+                console.error('Error starting session:', error);
+                // استخدام رد افتراضي إذا فشل الاتصال
+                clearChat();
                 addMessage(`مرحبًا! أنا LUKU AI، جاهز لتقديم ألغاز في مجال <strong>${category}</strong> بمستوى صعوبة <strong>${level}</strong>. هيا نبدأ! 🎯`, 'bot');
-            } else {
-                addMessage(`مرحبًا! أنا LUKU AI، مساعدك المختص في الألغاز والألعاب. كيف يمكنني مساعدتك اليوم? 🧩`, 'bot');
+                showNotification('تم بدء محادثة محلية', 'info');
             }
           
             // إضافة الجلسة إلى القائمة الجانبية
             addSessionToHistory(state.currentSessionId, category, level);
-          
-            showNotification('تم بدء محادثة جديدة', 'success');
         }
 
         function addSessionToHistory(sessionId, category, level) {
@@ -753,7 +1068,7 @@
             // إضافة رسالة تحميل
             addMessage('جاري تحميل المحادثة...', 'bot');
           
-            // محاكاة تحميل المحادثة (في التطبيق الحقيقي، نطلب البيانات من الخادم)
+            // محاكاة تحميل المحادثة
             setTimeout(() => {
                 clearChat();
                 addMessage('مرحبًا بك مجددًا! كيف يمكنني مساعدتك اليوم? 🧩', 'bot');
@@ -787,10 +1102,28 @@
             msgDiv.innerHTML = `
                 <div class="avatar">${avatar}</div>
                 <div class="bubble ${bubbleClass}">${text}</div>
+                ${sender === 'bot' ? '<button class="copy-btn" title="نسخ الرسالة">📋</button>' : ''}
             `;
           
             elements.chatBox.appendChild(msgDiv);
             elements.chatBox.scrollTop = elements.chatBox.scrollHeight;
+
+            // إضافة حدث النسخ لرسائل البوت فقط
+            if (sender === 'bot') {
+                const copyBtn = msgDiv.querySelector('.copy-btn');
+                copyBtn.addEventListener('click', () => {
+                    const messageText = msgDiv.querySelector('.bubble').textContent;
+                    copyToClipboard(messageText);
+                    
+                    // تغيير مظهر الزر مؤقتاً للإشارة إلى النسخ
+                    copyBtn.textContent = '✅';
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => {
+                        copyBtn.textContent = '📋';
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                });
+            }
         }
 
         function showTypingIndicator() {
@@ -836,7 +1169,8 @@
                         message: message,
                         sessionId: state.currentSessionId || 'default',
                         category: state.selectedCategory || '',
-                        level: state.selectedLevel || ''
+                        level: state.selectedLevel || '',
+                        isFirstMessage: false // هذه ليست أول رسالة
                     })
                 });
               
@@ -851,7 +1185,14 @@
             } catch (error) {
                 console.error('Error communicating with server:', error);
                 showNotification('حدث خطأ في الاتصال بالخادم', 'error');
-                return "عذرًا، حدث خطأ أثناء معالجة طلبك. يرجى التأكد من أن الخادم يعمل على المنفذ 3000.";
+                
+                // ردود افتراضية في حالة فشل الاتصال
+                const defaultReplies = [
+                    "أهلاً بك! أنا LUKU AI. جرب هذا اللغز: ما هو الشيء الذي كلما أخذت منه كبر؟ 🕳️",
+                    "مرحباً! ها هو لغز ممتع: يصعد وينزل ولا يتحرك من مكانه، ما هو؟ 📶",
+                    "أهلاً! لنبدأ بلغز: أخت خالك وليست خالتك، فمن تكون؟ 👩‍👦"
+                ];
+                return defaultReplies[Math.floor(Math.random() * defaultReplies.length)];
             } finally {
                 hideTypingIndicator();
                 state.isWaitingForResponse = false;
@@ -906,6 +1247,20 @@
                 document.body.classList.remove('theme-dark');
                 elements.themeIcon.textContent = '☀️';
                 state.theme = 'light';
+            }
+        }
+
+        // === التحقق من حجم الشاشة ===
+        function checkScreenSize() {
+            if (window.innerWidth <= 768) {
+                elements.mobileMenuBtn.style.display = 'block';
+                elements.sidebar.classList.remove('open');
+                elements.sidebarOverlay.classList.remove('open');
+            } else {
+                elements.mobileMenuBtn.style.display = 'none';
+                elements.sidebar.classList.remove('open');
+                elements.sidebarOverlay.classList.remove('open');
+                document.body.style.overflow = '';
             }
         }
 
@@ -1000,30 +1355,13 @@
                 }
             });
           
-            elements.copyLastBtn.addEventListener('click', () => {
-                const lastBotMessage = document.querySelector('.msg.bot:last-child .bubble');
-                if (lastBotMessage) {
-                    copyToClipboard(lastBotMessage.textContent);
-                } else {
-                    showNotification('لا يوجد رد لنسخه', 'info');
-                }
-            });
-          
             // القائمة الجانبية للأجهزة المحمولة
             elements.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
             elements.sidebarOverlay.addEventListener('click', toggleMobileMenu);
           
-            // إعادة تنظيم القائمة عند تغيير حجم النافذة
-            window.addEventListener('resize', () => {
-                if (window.innerWidth <= 768) {
-                    elements.mobileMenuBtn.style.display = 'block';
-                } else {
-                    elements.mobileMenuBtn.style.display = 'none';
-                    elements.sidebar.classList.remove('open');
-                    elements.sidebarOverlay.classList.remove('open');
-                    document.body.style.overflow = '';
-                }
-            });
+            // التحقق من حجم الشاشة عند التحميل وعند تغيير الحجم
+            window.addEventListener('load', checkScreenSize);
+            window.addEventListener('resize', checkScreenSize);
         }
 
         // === تهيئة التطبيق ===
@@ -1031,6 +1369,7 @@
             loadTheme();
             setupEventListeners();
             autoResizeTextarea(elements.input);
+            checkScreenSize();
           
             // عرض رسالة ترحيب عشوائية
             const welcomeMessages = [
