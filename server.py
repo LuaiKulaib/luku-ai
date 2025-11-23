@@ -3,183 +3,367 @@ from flask_cors import CORS
 import google.generativeai as genai
 import uuid
 import os
+import json
+import random
+from datetime import datetime, timedelta
+import hashlib
 
 # تهيئة تطبيق Flask
 app = Flask(__name__)
 CORS(app)  # تمكين CORS
 
-# استخدام مفتاح API الخاص بك
+# استخدام مفتاح API من متغير البيئة
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    print("🎉 Gemini API جاهز لتوليد ألغاز فريدة!")
+else:
+    print("🤖 وضع التجربة - سيتم استخدام ألغاز متنوعة")
 
-genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
-
-# تخزين المحادثات
+# تخزين البيانات
 chat_sessions = {}
+user_profiles = {}
+leaderboard = {}
 
-# prompt النظام
-SYSTEM_PROMPT = """
-أنت مساعد باسم "LUKU AI"، مختص بالكامل في الألعاب، الألغاز، الأسئلة المنطقية.
-إذا سُئلت عن شيء خارج هذا المجال، اكتب: "عذرًا أنا مساعد LUKU AI مختص في الألعاب والألغاز فقط."
-كن مرحًا وابتكر ألغاز وأسئلة ذكاء ممتعة، استخدم الإيموجيات بشكل مناسب.
-قدم الألغاز بناءً على المجال ومستوى الصعوبة المحدد.
+# 🎪 البرومبت المحسن لتوليد ألغاز فريدة ومرحة
+DYNAMIC_PROMPT = """
+أنت "LUKU AI" - مساعد الألغاز الذكي الأكثر مرحاً وإبداعاً في الكون! 
+
+## 🎯 مهمتك:
+1. **ابتكر ألغازاً جديدة** في كل مرة - لا تكرر الألغاز
+2. **كن مرحاً ومضحكاً** - استخدم النكت والتلميحات المضحكة
+3. **تفاعل بذكاء** مع إجابات المستخدم
+4. **استخدم الإيموجيات** بشكل مبدع وجذاب
+
+## 🎭 شخصيتك:
+- **مقدم ألعاب مشهور** 🎪
+- **صديق مرح ومضحك** 😄
+- **مشجع محترف** 🏆
+- **مبدع ألغاز خارق** 🧠
+
+## 💬 نمط الرد:
+- ابدأ مباشرة بلغز فريد ومرح
+- استخدم نبرة حماسية ومضحكة
+- تفاعل مع إجابات المستخدم بذكاء
+- حافظ على الإثارة والمرح
+
+المجال: {category}
+المستوى: {level}
+الرسالة: {message}
 """
 
-# إنشاء أو استرجاع جلسة محادثة
-def get_chat_session(session_id, category="", level=""):
-    if session_id not in chat_sessions:
-        # إنشاء نموذج جديد
-        model = genai.GenerativeModel('gemini-1.5-flash')
-       
-        # بدء محادثة جديدة مع تعليمات النظام
-        chat = model.start_chat(history=[
-            {
-                'role': 'user',
-                'parts': [f"{SYSTEM_PROMPT}\n\nالمجال: {category}\nمستوى الصعوبة: {level}"]
-            },
-            {
-                'role': 'model',
-                'parts': ["مرحبًا! أنا LUKU AI، مساعدك المختص في الألغاز والألعاب. كيف يمكنني مساعدتك اليوم؟ 🧩"]
-            }
-        ])
-       
-        chat_sessions[session_id] = {
-            'chat': chat,
-            'category': category,
-            'level': level,
-            'history': []
-        }
-   
-    return chat_sessions[session_id]
+# 🎲 مكتبة ألغاز احتياطية مرحة
+FUNNY_PUZZLES = {
+    "رياضة": [
+        "🏀 في الملعب دائماً أراقب الجميع، أتحكم في اللعبة لكنني لا ألعب! من أكون؟ (الجواب: الحكم)",
+        "⚽ أركض في الملعب، ألعب بالكرة، لكن عندما أتعب... أجلس على الكرسي! من أكون؟ (الجواب: اللاعب البديل)",
+        "🎯 في الملعب ولكنني لا أتعب، أراقب اللاعبين وأحمل بطاقات ملونة! من أكون؟"
+    ],
+    "ثقافة": [
+        "📚 أملك صفحات كثيرة، أحكي قصصاً لا تنتهي، لكنني لا أتحدث! من أكون؟ (الجواب: الكتاب)",
+        "🎭 على المساهر أظهر، أضحك وأبكي، لكن مشاعري مزيفة! من أكون؟ (الجواب: الممثل)",
+        "🎨 أرسم لوحات جميلة، أعبر عن المشاعر، لكن بلا فرشاة! من أكون؟"
+    ],
+    "منطق": [
+        "🕳️ كلما أخذت مني أكثر... كبرت أكثر! من أكون؟ (الجواب: الحفرة)",
+        "📶 أصعد وأهبط طوال اليوم، لكنني لا أتحرك من مكاني! من أكون؟ (الجواب: السلم)",
+        "🔄 ليس لي بداية ولا نهاية، لكنني في كل مكان! من أكون؟"
+    ],
+    "دين": [
+        "🕌 أنا أول من دعا إلى الله، عشت في زمن الطوفان! من أكون؟ (الجواب: نوح عليه السلام)",
+        "📖 أنزلت في شهر رمضان، أهدي الناس إلى طريق الحق! ما أنا؟ (الجواب: القرآن الكريم)",
+        "🌙 في السماء أظهر، أهدي المسافرين، وأحدد أوقات الصلاة! من أكون؟"
+    ],
+    "ترفيه": [
+        "🎬 على الشاشة أظهر، أجعلك تضحك وتبكي، لكنني لست حقيقياً! من أكون؟ (الجواب: الفيلم)",
+        "🎮 في العالم الافتراضي أعيش، أتحدى اللاعبين، وأقدم المغامرات! من أكون؟",
+        "🎪 تحت الخيمة أقدم العروض، أضحك الأطفال والكبار! من أكون؟"
+    ]
+}
 
-# مسار للدردشة
+# 🎭 شخصيات LUKU AI المضحكة
+CHARACTERS = {
+    "المخترع_المجنون": {
+        "name": "المخترع LUKU المجنون 🧪", 
+        "style": "يبتكر ألغازاً مجنونة ومضحكة",
+        "greetings": [
+            "أهلاً يا بطل الإبداع! 🎨 اليوم سنخترع ألغازاً مجنونة!",
+            "المخترع المجنون LUKU في الخدمة! 🔬 مستعد لبعض الجنون؟",
+            "ياااااه! 🚀 لنبتكر ألغازاً ستجعل عقلك يدور! 💫"
+        ]
+    },
+    "المحقق_الظريف": {
+        "name": "المحقق LUKU الظريف 🕵️", 
+        "style": "يحل الألغاز بطريقة مضحكة",
+        "greetings": [
+            "أهلاً بالمحقق العبقري! 🔍 اليوم سنحل ألغازاً مضحكة!",
+            "المحقق الظريف LUKU جاهز! 🕵️‍♂️ هل أنت مستعد للضحك؟",
+            "لغز جديد ينتظر حلك! 🎯 لكن هذه المرة... سيكون مضحكاً! 😂"
+        ]
+    },
+    "الساحر_المضحك": {
+        "name": "الساحر LUKU المضحك 🎩", 
+        "style": "يحول الألغاز إلى سحر وضحك",
+        "greetings": [
+            "أبراكادابرا! ✨ أهلاً بساحر الضحك!",
+            "الساحر المضحك LUKU هنا! 🎪 لنحول الألغاز إلى ضحك!",
+            "هيهيهي! 🎭 مستعد لبعض السحر والضحك؟ 🌟"
+        ]
+    }
+}
+
+def get_funny_response(is_correct=True, user_message=""):
+    """إرجاع ردود مضحكة بناءً على الإجابة"""
+    
+    if is_correct:
+        responses = [
+            f"واو! 🎉 إجابة رائعة! {user_message} - هذا يجعلني أرقص من الفرح! 💃",
+            f"مذهل! 🚀 {user_message} - حتى الروبوتات تحترم ذكاءك! 🤖",
+            f"برافو! 🏆 {user_message} - إجابة تجعل نيوتن يغار منك! 🍎",
+            f"رائع! 🔥 {user_message} - كأنك تقرأ أفكاري السرية! 🧠",
+            f"إبداع! 🌟 {user_message} - هذه الإجابة تستحق وسام العبقرية! 🎖️"
+        ]
+    else:
+        responses = [
+            f"هههه! 😂 {user_message} - إجابة مبدعة... لكن خاطئة! جرب مرة أخرى! 💫",
+            f"أوه! 🎪 {user_message} - كادت أن تكون صحيحة... مثل كوب شاي بلا سكر! ☕",
+            f"مضحك! 🎭 {user_message} - كانت محاولة شجاعة! الجواب الصحيح قريب! 🎯",
+            f"لا بأس! 🌈 {user_message} - حتى العباقرة يخطئون! جرب مرة أخرى! 💪",
+            f"ههه! 🤣 {user_message} - إجابة ستجعل أينشتاين يضحك! حاول مرة أخرى! 🧠"
+        ]
+    
+    return random.choice(responses)
+
+def generate_funny_puzzle(category, level, user_id):
+    """توليد لغز مضحك وفريد"""
+    
+    # توليد بصمة فريدة لتجنب التكرار
+    unique_seed = f"{datetime.now().strftime('%Y%m%d%H%M')}_{user_id[:8]}"
+    random.seed(hash(unique_seed) % 10000)
+    
+    if category in FUNNY_PUZZLES:
+        puzzle = random.choice(FUNNY_PUZZLES[category])
+        
+        # إضافة لمسات مرحة
+        funny_intros = [
+            "🎪 هيا نلعب! ها هو لغز مضحك: ",
+            "😂 استعد للضحك! هذا اللغز سيجعلك تضحك: ",
+            "🎭 ياااااه! لغز جديد مضحك: ",
+            "🤣 ضحك ومتعة! جرب هذا اللغز: ",
+            "🎊 مرح وفرح! ها هو لغز ممتع: "
+        ]
+        
+        return f"{random.choice(funny_intros)}\n\n{puzzle}"
+    else:
+        return generate_gemini_funny_puzzle(category, level)
+
+def generate_gemini_funny_puzzle(category, level):
+    """استخدام Gemini لتوليد ألغاز مضحكة"""
+    if not GEMINI_API_KEY:
+        # ألغاز احتياطية مضحكة
+        backup_puzzles = [
+            f"😂 في عالم {category}، ما هو الشيء الذي يرى كل شيء لكنه لا يتكلم؟ (تلميح: 🤐)",
+            f"🎭 في {category}، ما الذي يملك أسناناً لكنه لا يعض؟ (تلميح: 😁)",
+            f"🤣 في {category}، ما الذي يملك قلباً لكنه لا ينبض؟ (تلميح: 💖)",
+            f"🎪 في {category}، ما الذي يملك مدناً بلا بيوت؟ (تلميح: 🗺️)",
+            f"😄 في {category}، ما الذي ينام ويقظ لكنه لا يتعب؟ (تلميح: 🛌)"
+        ]
+        return random.choice(backup_puzzles)
+    
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        prompt = f"""
+        {DYNAMIC_PROMPT.format(category=category, level=level, message="")}
+        
+        ابتكر لغزاً مضحكاً وفريداً في مجال {category} بمستوى {level}.
+        يجب أن يكون اللغز:
+        - مضحكاً ومرحاً
+        - جديداً تماماً
+        - مكتوباً بالعربية
+        - يحتوي على إيموجيات مناسبة
+        
+        ابدأ مباشرة باللغز المضحك!
+        """
+        
+        response = model.generate_content(prompt)
+        return response.text.strip()
+        
+    except Exception as e:
+        print(f"🎪 خطأ في توليد اللغز: {e}")
+        return "🎲 ها هو لغز مضحك: ما الذي ينام ويقظ لكنه لا يتعب؟ (الجواب: السرير) 🛌"
+
+def initialize_user_session(user_id):
+    """تهيئة جلسة المستخدم الجديدة"""
+    if user_id not in user_profiles:
+        user_profiles[user_id] = {
+            'points': 0,
+            'level': 1,
+            'streak': 0,
+            'correct_answers': 0,
+            'total_answers': 0,
+            'achievements': [],
+            'character': random.choice(list(CHARACTERS.keys())),
+            'join_date': datetime.now().isoformat(),
+            'last_puzzles': []
+        }
+    
+    if user_id not in leaderboard:
+        leaderboard[user_id] = {
+            'score': 0,
+            'rank': len(leaderboard) + 1,
+            'last_active': datetime.now().isoformat()
+        }
+
+def get_user_character(user_id):
+    """الحصول على شخصية المستخدم"""
+    return user_profiles[user_id].get('character', 'المخترع_المجنون')
+
+# 🎯 المسارات الرئيسية المحدثة
+@app.route('/')
+def serve_html():
+    """خدمة الموقع الرئيسي"""
+    try:
+        with open('LUKU-AI.html', 'r', encoding='utf-8') as file:
+            html_content = file.read()
+        return html_content
+    except Exception as e:
+        return f"""
+        <html>
+        <head><title>LUKU AI</title></head>
+        <body style="background: #0b0e14; color: white; text-align: center; padding: 50px;">
+            <h1>🧩 LUKU AI - مساعد الألغاز المضحك</h1>
+            <p>⚠️ خطأ في تحميل الموقع: {str(e)}</p>
+            <p>✅ الخادم يعمل بشكل صحيح</p>
+        </body>
+        </html>
+        """
+
 @app.route('/chat', methods=['POST'])
 def chat():
     try:
         data = request.get_json()
-        message = data.get('message', '')
+        message = data.get('message', '').strip()
         session_id = data.get('sessionId', 'default')
-        category = data.get('category', '')
-        level = data.get('level', '')
+        category = data.get('category', 'عام')
+        level = data.get('level', 'متوسط')
+        user_id = data.get('userId', f'user_{uuid.uuid4().hex[:8]}')
+        is_first_message = data.get('isFirstMessage', False)
        
-        if not message:
-            return jsonify({
-                'error': True,
-                'message': 'الرسالة مطلوبة'
-            }), 400
-       
-        session = get_chat_session(session_id, category, level)
-        session['history'].append({'role': 'user', 'content': message})
-       
-        # إرسال الرسالة إلى Gemini AI
-        response = session['chat'].send_message(message)
-        reply = response.text
-       
-        session['history'].append({'role': 'assistant', 'content': reply})
+        # تهيئة المستخدم
+        initialize_user_session(user_id)
+        
+        # الحصول على شخصية المستخدم
+        character = get_user_character(user_id)
+        character_info = CHARACTERS[character]
+        
+        if is_first_message:
+            # 🎪 بدء محادثة جديدة بمقدمة مضحكة
+            greeting = random.choice(character_info['greetings'])
+            puzzle = generate_funny_puzzle(category, level, user_id)
+            
+            reply = f"{greeting}\n\n{puzzle}\n\n🤔 فكر جيداً وأجب... 🧠"
+            
+        else:
+            # 🎭 معالجة ردود المستخدم بطريقة مضحكة
+            # محاكاة تقييم الإجابة (يمكن تطوير هذا الجزء)
+            is_correct = len(message) > 2  # محاكاة بسيطة
+            
+            funny_response = get_funny_response(is_correct, message)
+            next_puzzle = generate_funny_puzzle(category, level, user_id)
+            
+            reply = f"{funny_response}\n\n🎯 التحدي القادم:\n{next_puzzle}"
+            
+            # تحديث النقاط
+            if is_correct:
+                user_profiles[user_id]['points'] += 10
+                user_profiles[user_id]['correct_answers'] += 1
+                user_profiles[user_id]['streak'] += 1
+            else:
+                user_profiles[user_id]['streak'] = 0
+            
+            user_profiles[user_id]['total_answers'] += 1
+        
+        # حفظ المحادثة
+        if session_id not in chat_sessions:
+            chat_sessions[session_id] = {
+                'history': [],
+                'user_id': user_id,
+                'start_time': datetime.now().isoformat()
+            }
+        
+        chat_sessions[session_id]['history'].append({
+            'user': message,
+            'assistant': reply,
+            'timestamp': datetime.now().isoformat()
+        })
        
         return jsonify({
             'success': True,
             'reply': reply,
-            'sessionId': session_id
-        })
-       
-    except Exception as err:
-        print("Error in /chat endpoint:", err)
-       
-        # معالجة أنواع مختلفة من الأخطاء
-        error_message = "حدث خطأ أثناء معالجة طلبك"
-       
-        if "API_KEY" in str(err):
-            error_message = "مفتاح API غير صالح أو غير موجود"
-        elif "network" in str(err):
-            error_message = "خطأ في الاتصال بالشبكة"
-       
-        return jsonify({
-            'error': True,
-            'message': error_message
-        }), 500
-
-# مسار لإنشاء جلسة جديدة
-@app.route('/session/new', methods=['POST'])
-def new_session():
-    try:
-        data = request.get_json()
-        category = data.get('category', '')
-        level = data.get('level', '')
-       
-        session_id = f"session_{uuid.uuid4().hex}"
-       
-        # إنشاء جلسة جديدة
-        get_chat_session(session_id, category, level)
-       
-        return jsonify({
-            'success': True,
             'sessionId': session_id,
-            'message': 'تم إنشاء جلسة جديدة بنجاح'
+            'userId': user_id,
+            'points': user_profiles[user_id]['points'],
+            'character': character_info['name'],
+            'correctAnswers': user_profiles[user_id]['correct_answers'],
+            'totalAnswers': user_profiles[user_id]['total_answers']
         })
        
     except Exception as err:
-        print("Error in /session/new endpoint:", err)
+        print("😂 خطأ مضحك في المحادثة:", str(err))
         return jsonify({
             'error': True,
-            'message': 'حدث خطأ أثناء إنشاء الجلسة'
+            'message': f'🎪 عذراً! حدث خطأ مضحك: {str(err)}'
         }), 500
 
-# مسار للحصول على تاريخ المحادثة
-@app.route('/history/<session_id>', methods=['GET'])
-def get_history(session_id):
-    try:
-        if session_id not in chat_sessions:
-            return jsonify({
-                'error': True,
-                'message': 'الجلسة غير موجودة'
-            }), 404
-       
-        session = chat_sessions[session_id]
-       
+# 🎊 مسارات إضافية مرحة
+@app.route('/user/<user_id>/profile')
+def get_user_profile(user_id):
+    """الحصول على ملف المستخدم بطريقة مرحة"""
+    if user_id in user_profiles:
+        profile = user_profiles[user_id]
         return jsonify({
             'success': True,
-            'history': session['history'],
-            'category': session['category'],
-            'level': session['level']
+            'profile': {
+                'points': profile['points'],
+                'level': profile['level'],
+                'streak': profile['streak'],
+                'correct_answers': profile['correct_answers'],
+                'total_answers': profile['total_answers'],
+                'character': CHARACTERS[profile['character']]['name'],
+                'join_date': profile['join_date']
+            },
+            'message': '🎉 ها هو ملفك الشخصي الممتع!'
         })
-       
-    except Exception as err:
-        print("Error in /history endpoint:", err)
-        return jsonify({
-            'error': True,
-            'message': 'حدث خطأ أثناء جلب التاريخ'
-        }), 500
+    return jsonify({'error': 'المستخدم غير موجود'}), 404
 
-# مسار لحذف جلسة
-@app.route('/session/<session_id>', methods=['DELETE'])
-def delete_session(session_id):
-    try:
-        if session_id in chat_sessions:
-            del chat_sessions[session_id]
-           
-            return jsonify({
-                'success': True,
-                'message': 'تم حذف الجلسة بنجاح'
-            })
-        else:
-            return jsonify({
-                'error': True,
-                'message': 'الجلسة غير موجودة'
-            }), 404
-           
-    except Exception as err:
-        print("Error in /session endpoint:", err)
-        return jsonify({
-            'error': True,
-            'message': 'حدث خطأ أثناء حذف الجلسة'
-        }), 500
-
-# middleware للتعامل مع المسارات غير المعرفة
-@app.errorhandler(404)
-def not_found(error):
+@app.route('/puzzle/funny')
+def get_funny_puzzle():
+    """الحصول على لغز مضحك عشوائي"""
+    category = request.args.get('category', random.choice(list(FUNNY_PUZZLES.keys())))
+    user_id = request.args.get('user_id', f'guest_{random.randint(1000, 9999)}')
+    
+    puzzle = generate_funny_puzzle(category, 'متوسط', user_id)
+    
     return jsonify({
-        'error': True,
-        'message': 'مسار غير موجود'
-    }), 404
+        'success': True,
+        'puzzle': puzzle,
+        'category': category,
+        'message': '😂 ها هو لغز مضحك من LUKU AI!'
+    })
+
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': '✅ الخادم يعمل وبكامل طاقته المرحة!',
+        'users_count': len(user_profiles),
+        'sessions_active': len(chat_sessions),
+        'message': '🎪 LUKU AI جاهز للضحك والألغاز!'
+    })
 
 if __name__ == '__main__':
-    app.run(port=3000, debug=True)
+    port = int(os.environ.get("PORT", 3000))
+    print(f"🎉 بدء تشغيل LUKU AI المضحك على المنفذ {port}")
+    print(f"🎯 الميزات: ألغاز مضحكة، شخصيات مرحة، تفاعل ذكي")
+    print(f"😂 جاهز لجعل التعلم متعة والتفكير ضحك! 🚀")
+    app.run(host='0.0.0.0', port=port, debug=False)
