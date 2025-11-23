@@ -9,11 +9,13 @@ import google.generativeai as genai
 
 # --- 1. التهيئة والضبط ---
 app = Flask(__name__)
-CORS(app)
+# السماح لجميع الأصول بالوصول (مهم جداً للواجهة الأمامية)
+CORS(app) 
 
+# التأكد من وجود مفتاح API
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-# إذا لم يكن المفتاح موجوداً، سنطلق خطأ واضحاً ونمنع التشغيل
 if not GEMINI_API_KEY:
+    # ❌ خطأ فادح يوقف التطبيق إذا لم يتم العثور على المفتاح
     raise ValueError("❌ خطأ فادح: GEMINI_API_KEY غير موجود. يجب إعداده للاعتماد الكلي على Gemini.")
 
 try:
@@ -23,12 +25,11 @@ except Exception as e:
     raise RuntimeError(f"❌ فشل تهيئة Gemini API: {e}")
 
 
-# تخزين البيانات في الذاكرة
+# تخزين البيانات في الذاكرة (لأغراض العرض)
 chat_sessions = {}
 user_profiles = {}
 
 # 🎪 البرومبت المحسن لشخصية المهرج المزوح
-# (هذا البرومبت سيُستخدم لتوليد الألغاز وتقييم الإجابات والدردشة العامة)
 DYNAMIC_PROMPT = """
 أنت "LUKU AI" - مساعد الألغاز الذكي الأكثر مرحاً وإبداعاً وجنوناً في الكون! مهمتك الأساسية هي أن تكون **مهرجاً مزوحاً لا يتوقف عن الضحك والتفاعل المبالغ فيه**.
 
@@ -52,37 +53,43 @@ CHARACTERS = {
 
 def initialize_user_session(user_id, category='عام', level='سهل'):
     """تهيئة جلسة المستخدم وتعيين الإعدادات الأولية"""
+    # إذا لم يكن المستخدم موجوداً، ننشئ له ملف تعريف
     if user_id not in user_profiles:
         user_profiles[user_id] = {
             'points': 0, 'level': level, 'category': category,
             'streak': 0, 'correct_answers': 0, 'total_answers': 0,
             'character': random.choice(list(CHARACTERS.keys())),
         }
-    
+    else:
+         # تحديث الإعدادات عند بدء جلسة جديدة لنفس المستخدم
+        user_profiles[user_id]['category'] = category
+        user_profiles[user_id]['level'] = level
+
     # 💡 يتم استخدام وضع المحادثة مع Gemini هنا للحفاظ على سياق الدردشة
-    if user_id not in chat_sessions or 'gemini_chat' not in chat_sessions[user_id]:
-         # إنشاء جلسة محادثة جديدة مع ذاكرة
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        chat = model.start_chat(
-            history=[],
-            # 💡 يتم إعطاء Gemini شخصيته في بداية المحادثة
-            system_instruction=DYNAMIC_PROMPT.format(category=category, level=level)
-        )
-        chat_sessions[user_id] = {
-            'history': [],
-            'gemini_chat': chat,
-            'current_puzzle': None,
-            'correct_answer': None,
-            'last_active': datetime.now().isoformat(),
-            'category': category,
-            'level': level
-        }
+    # نقوم دائماً بإنشاء جلسة محادثة جديدة لتحديث System Prompt بناءً على الاختيار الجديد
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    chat = model.start_chat(
+        history=[],
+        # 💡 يتم إعطاء Gemini شخصيته في بداية المحادثة
+        system_instruction=DYNAMIC_PROMPT.format(category=category, level=level)
+    )
+    chat_sessions[user_id] = {
+        'history': [],
+        'gemini_chat': chat,
+        'current_puzzle': None,
+        'correct_answer': None,
+        'last_active': datetime.now().isoformat(),
+        'category': category,
+        'level': level
+    }
+
 
 def get_user_character(user_id):
     """الحصول على شخصية المستخدم"""
-    return user_profiles[user_id].get('character', 'المخترع_المجنون')
+    # التأكد من وجود ملف التعريف قبل الوصول إليه
+    return user_profiles.get(user_id, {}).get('character', 'المخترع_المجنون')
 
-def understand_user_intent(message):
+def understand_user_intent(message, user_id):
     """فهم نية المستخدم من الرسالة"""
     message_lower = message.lower()
     
@@ -93,7 +100,7 @@ def understand_user_intent(message):
     elif any(word in message_lower for word in ['مساعدة', 'تلميح', 'ساعدني', 'hint']):
         return 'request_help'
     # الإجابة على اللغز السابق
-    elif chat_sessions.get(request.get_json().get('userId')) and chat_sessions[request.get_json().get('userId')].get('current_puzzle'):
+    elif chat_sessions.get(user_id) and chat_sessions[user_id].get('current_puzzle'):
         return 'submit_answer'
     # دردشة عامة (سؤال عن شيء آخر)
     else:
@@ -112,7 +119,8 @@ def generate_puzzle_data(category, level):
     }}
     """
     
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    # ضبط زمن انتظار أطول قليلاً
     response = model.generate_content(
         prompt,
         config=genai.types.GenerateContentConfig(
@@ -123,11 +131,12 @@ def generate_puzzle_data(category, level):
                     "puzzle": {"type": "string"},
                     "answer": {"type": "string"}
                 }
-            }
+            },
+            # قد نحتاج إلى رفع timeout_sec حسب استجابة الشبكة
+            # timeout_sec=60 
         )
     )
     
-    # يجب أن ينجح هذا التحويل لضمان الحصول على بيانات نظيفة
     data = json.loads(response.text)
     return data['puzzle'], data['answer']
 
@@ -147,7 +156,7 @@ def evaluate_and_reply_with_gemini(user_id, user_attempt, current_puzzle, correc
     3. يجب أن يكون الرد لاذعاً ومضحكاً ولا يتجاوز سطرين.
     """
     
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     response = model.generate_content(prompt)
     full_text = response.text.strip()
     
@@ -165,6 +174,7 @@ def evaluate_and_reply_with_gemini(user_id, user_attempt, current_puzzle, correc
 def serve_html():
     """خدمة ملف HTML (للحفاظ على الواجهة الأصلية)"""
     try:
+        # تأكد من أن الملف بهذا الاسم في نفس مجلد الخادم
         with open('LUKU-AI.html', 'r', encoding='utf-8') as file:
             return file.read()
     except Exception:
@@ -175,9 +185,13 @@ def serve_html():
 def start_session():
     """مسار جديد: استقبال خيارات المستخدم (الفئة والمستوى) وبدء اللعبة"""
     data = request.get_json()
-    user_id = data.get('userId', f'user_{uuid.uuid4().hex[:8]}')
+    # 💡 نحصل على userId من الواجهة الأمامية وهو موجود في localStorage
+    user_id = data.get('userId') 
     category = data.get('category', 'عام')
     level = data.get('level', 'سهل')
+    
+    if not user_id:
+        return jsonify({'error': True, 'message': '❌ يرجى إرسال userId لبدء الجلسة.'}), 400
     
     try:
         # 1. تهيئة الجلسة ووضع Gemini في وضع المحادثة
@@ -223,19 +237,20 @@ def chat():
     if not user_id or user_id not in chat_sessions:
         return jsonify({
             'error': True,
-            'message': '❌ يجب بدء الجلسة أولاً عن طريق اختيار القسم والمستوى.'
+            # رسالة واضحة للواجهة الأمامية
+            'message': '❌ لم يتم العثور على جلسة نشطة لهذا المستخدم. يرجى اختيار القسم والمستوى أولاً.'
         }), 400
 
     current_session = chat_sessions[user_id]
     user_profile = user_profiles[user_id]
-    user_intent = understand_user_intent(message)
+    user_intent = understand_user_intent(message, user_id)
     reply = ""
 
     try:
         if user_intent == 'submit_answer':
             
             if not current_session.get('current_puzzle'):
-                # إذا لم يكن هناك لغز نشط، نعتبره طلب لغز جديد وننتقل للمنطق أدناه
+                # إذا لم يكن هناك لغز نشط، نعتبره طلب لغز جديد
                 user_intent = 'request_puzzle' 
             else:
                 # 1. تقييم الإجابة وتوليد الرد المرح
@@ -281,7 +296,7 @@ def chat():
             # طلب تلميح (يستخدم Gemini لتوليد تلميح مرح)
             current_puzzle = current_session.get('current_puzzle')
             if current_puzzle:
-                # نطلب من Gemini توليد التلميح
+                # نطلب من Gemini توليد التلميح ونستخدم سجل المحادثة للحفاظ على السياق
                 chat_response = current_session['gemini_chat'].send_message(
                     f"أنا أحتاج لتلميح مضحك جداً للغز: {current_puzzle}. يجب أن يكون الرد لاذعاً ومزوحاً."
                 ).text.strip()
@@ -318,5 +333,7 @@ def chat():
         }), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 3000))
+    # 📌 التشغيل على المنفذ المطلوب 3000
+    port = 3000 
+    print(f"🚀 تشغيل الخادم على http://0.0.0.0:{port}")
     app.run(host='0.0.0.0', port=port, debug=False)
